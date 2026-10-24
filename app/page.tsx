@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Plug, Search, Sparkles, Square, UserRound } from 'lucide-react';
+import { ArtifactViewer } from '@/components/artifact-viewer';
+import { ArtifactsView } from '@/components/artifacts-view';
 import { ConnectionsView } from '@/components/connections-view';
 import { HomeView } from '@/components/home-view';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -11,9 +13,9 @@ import { ProductCard } from '@/components/product-card';
 import { ProductDialog } from '@/components/product-dialog';
 import { Sidebar } from '@/components/sidebar';
 import { I18nProvider, useI18n } from '@/lib/i18n';
-import { money, type ChatEvent, type Fact, type HomeContent, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
+import { money, type Artifact, type ArtifactEvent, type ArtifactKind, type ChatEvent, type Fact, type HomeContent, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
 
-type View = 'home' | 'chat' | 'memory' | 'saved' | 'connections';
+type View = 'home' | 'chat' | 'memory' | 'saved' | 'connections' | 'artifacts' | 'artifact';
 type Message = {
   id: string; role: 'user' | 'assistant'; text: string;
   products?: Product[]; suggestions?: string[]; auto?: boolean; error?: boolean; memoryUsed?: number; memoryAdded?: number;
@@ -23,12 +25,13 @@ type Stored = {
   facts: Fact[]; conversations: Conversation[]; summary: string | null; orders: number; lastSync: string | null; saved: Saved[];
   memoryEnabled: boolean; learnFromChat: boolean;
   home: { key: string; data: HomeContent } | null;
+  artifacts: Artifact[];
 };
 type Gmail = { connected: boolean; email?: string };
 type Sync = { status: string; merchants: string[]; emails: number };
 
 const STORAGE_KEY = 'magent.v2';
-const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true, home: null };
+const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true, home: null, artifacts: [] };
 
 async function readEvents<E>(response: Response, onEvent: (event: E) => void) {
   if (!response.ok || !response.body) {
@@ -101,6 +104,8 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [detail, setDetail] = useState<Product | null>(null);
   const [ready, setReady] = useState<{ orders: number } | null>(null);
+  const [artifactId, setArtifactId] = useState<string | null>(null);
+  const [creating, setCreating] = useState<{ kind: ArtifactKind; status: string } | null>(null);
   const [toast, setToast] = useState('');
   const dataRef = useRef(EMPTY);
   const activeRef = useRef<string | null>(null);
@@ -270,7 +275,7 @@ function App() {
     window.scrollTo({ top: 0 });
     window.setTimeout(() => inputRef.current?.focus(), 50);
   }
-  function openView(next: 'memory' | 'saved' | 'connections') { setMenuOpen(false); activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
+  function openView(next: 'memory' | 'saved' | 'connections' | 'artifacts') { setMenuOpen(false); activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
 
   function toggleSave(product: Product, insight: PriceInsight | null) {
     if (dataRef.current.saved.some(s => s.product.id === product.id)) {
@@ -311,6 +316,42 @@ function App() {
     setToast(t('toast.loggedOut'));
   }
 
+  // What the user searched for recently, for artifact pages.
+  const recentSearches = () => dataRef.current.conversations
+    .flatMap(c => c.messages.filter(m => m.role === 'user' && !m.auto).map(m => m.text.slice(0, 200)))
+    .slice(0, 15);
+
+  async function createArtifact(kind: ArtifactKind, prompt: string) {
+    if (creating) return;
+    setCreating({ kind, status: t('artifacts.planning') });
+    try {
+      const response = await fetch('/api/artifacts', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind, prompt, facts: dataRef.current.memoryEnabled ? dataRef.current.facts : [], history: recentSearches(), locale }),
+      });
+      await readEvents<ArtifactEvent>(response, event => {
+        if (event.type === 'status') setCreating({ kind, status: event.code === 'searching' ? t('artifacts.searching', { count: event.count }) : t(`artifacts.${event.code}`) });
+        else if (event.type === 'error') setToast(event.message);
+        else if (event.type === 'artifact') {
+          update(d => ({ ...d, artifacts: [event.artifact, ...d.artifacts].slice(0, 12) }));
+          setArtifactId(event.artifact.id);
+          activate(activeRef.current, 'artifact');
+          window.scrollTo({ top: 0 });
+        }
+      });
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : t('artifacts.failed'));
+    } finally {
+      setCreating(null);
+    }
+  }
+
+  function deleteArtifact(id: string) {
+    if (!window.confirm(t('artifacts.confirmDelete'))) return;
+    update(d => ({ ...d, artifacts: d.artifacts.filter(a => a.id !== id) }));
+    if (artifactId === id) { setArtifactId(null); setView('artifacts'); }
+  }
+
   async function disconnect() {
     await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
     setGmail({ connected: false });
@@ -345,7 +386,8 @@ function App() {
     </form>
   );
 
-  const breadcrumb = view === 'memory' ? t('nav.yourMemory') : view === 'saved' ? t('nav.savedFinds') : view === 'connections' ? t('nav.connections') : view === 'chat' && active ? active.title : '';
+  const openArtifact = view === 'artifact' ? data.artifacts.find(a => a.id === artifactId) : undefined;
+  const breadcrumb = view === 'memory' ? t('nav.yourMemory') : view === 'saved' ? t('nav.savedFinds') : view === 'connections' ? t('nav.connections') : view === 'artifacts' ? t('nav.artifacts') : openArtifact ? openArtifact.title : view === 'chat' && active ? active.title : '';
 
   // Logged out (no Gmail connection): show the service introduction instead of the app.
   if (!gmail) return <div className="boot" aria-busy="true"><img src="/brand/magent-symbol.webp" alt="magent" /></div>;
@@ -366,6 +408,8 @@ function App() {
         activeId={view === 'chat' ? activeId : null}
         memoryActive={view === 'memory'}
         connectionsActive={view === 'connections'}
+        artifactsActive={view === 'artifacts' || view === 'artifact'}
+        onArtifacts={() => openView('artifacts')}
         onConnections={() => openView('connections')}
         factCount={data.facts.length}
         gmailEmail={gmailEmail}
@@ -497,6 +541,30 @@ function App() {
               onOpenConversation={id => { activate(id, 'chat'); window.scrollTo({ top: 0 }); }}
               onNewChat={newChat}
               onSettings={patch => update(d => ({ ...d, ...patch }))}
+            />
+          )}
+
+          {view === 'artifacts' && (
+            <ArtifactsView
+              artifacts={data.artifacts}
+              factCount={data.memoryEnabled ? data.facts.length : 0}
+              searchCount={recentSearches().length}
+              creating={creating}
+              onCreate={(kind, prompt) => void createArtifact(kind, prompt)}
+              onOpen={id => { setArtifactId(id); activate(activeRef.current, 'artifact'); window.scrollTo({ top: 0 }); }}
+              onDelete={deleteArtifact}
+            />
+          )}
+
+          {view === 'artifact' && openArtifact && (
+            <ArtifactViewer
+              artifact={openArtifact}
+              savedIds={new Set(data.saved.map(s => s.product.id))}
+              onBack={() => openView('artifacts')}
+              onDelete={() => deleteArtifact(openArtifact.id)}
+              onRemake={() => { openView('artifacts'); void createArtifact(openArtifact.kind, openArtifact.prompt); }}
+              onSave={toggleSave}
+              onDetail={setDetail}
             />
           )}
 

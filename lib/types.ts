@@ -45,6 +45,32 @@ export type HomeContent = {
   usualTier: number;
 };
 
+export const artifactKinds = ['storefront', 'gift', 'restock'] as const;
+export type ArtifactKind = (typeof artifactKinds)[number];
+export const artifactAccents = ['orange', 'blue', 'green', 'plum', 'sand', 'ink'] as const;
+export type ArtifactAccent = (typeof artifactAccents)[number];
+
+/** A personal shopping page magent builds from memory and recent searches. */
+export type Artifact = {
+  id: string;
+  kind: ArtifactKind;
+  title: string;
+  tagline: string;
+  intro: string;
+  accent: ArtifactAccent;
+  basedOn: string[];
+  sections: { title: string; description: string; products: Product[] }[];
+  prompt: string;
+  createdAt: string;
+};
+
+export type ArtifactEvent =
+  | { type: 'status'; code: 'planning' | 'assembling' }
+  | { type: 'status'; code: 'searching'; count: number }
+  | { type: 'artifact'; artifact: Artifact }
+  | { type: 'error'; message: string }
+  | { type: 'done' };
+
 export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household'] as const;
 export type FactCategory = (typeof factCategories)[number];
 

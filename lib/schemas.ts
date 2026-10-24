@@ -1,7 +1,7 @@
 import { z } from 'zod';
+import { artifactKinds, factCategories } from './types';
 
 export const localeSchema = z.enum(['en', 'ko', 'ja']).default('en');
-import { factCategories } from './types';
 
 export const factSchema = z.object({
   key: z.string().min(1).max(64),
@@ -32,6 +32,14 @@ export const chatSchema = z.object({
   locale: localeSchema,
 });
 export type ChatInput = z.infer<typeof chatSchema>;
+
+export const artifactSchema = z.object({
+  kind: z.enum(artifactKinds),
+  prompt: z.string().max(500).default(''),
+  facts: z.array(factSchema).max(80).default([]),
+  history: z.array(z.string().max(200)).max(20).default([]),
+  locale: localeSchema,
+});
 
 export const homeSchema = z.object({
   facts: z.array(factSchema).min(1).max(80),
