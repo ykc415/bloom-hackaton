@@ -73,7 +73,7 @@ export function ProductCard({ product, saved, onSave, onDetail, drop }: Props) {
             : best.inStock ? 'Retailer reports in stock' : 'Availability not confirmed'}
         </p>
         <div className="product-actions">
-          <a className="buy-button" href={best.url} target="_blank" rel="noopener noreferrer">Buy now <ArrowUpRight size={15} aria-hidden /></a>
+          <button type="button" className="explore-button" onClick={() => onDetail(product)}>Explore this find <ArrowUpRight size={15} aria-hidden /></button>
           {product.offers.length > 1 && (
             <button
               type="button"

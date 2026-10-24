@@ -253,8 +253,8 @@ img { display: block; max-width: 100%; }
 .stock-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #c0c2c9; flex-shrink: 0; }
 .stock-dot.green { background: #67a482; }
 .product-actions { display: flex; gap: 7px; }
-.buy-button { display: flex; align-items: center; justify-content: space-between; gap: 7px; flex: 1; background: #19191b; color: #fff; border-radius: 7px; padding: 10px 12px; font-size: 10px; font-weight: 500; text-decoration: none; }
-.buy-button:hover { background: #37373a; }
+.explore-button { display: flex; align-items: center; justify-content: space-between; gap: 7px; flex: 1; background: #19191b; color: #fff; border-radius: 7px; padding: 10px 12px; font-size: 10px; font-weight: 500; }
+.explore-button:hover { background: #37373a; }
 .compare-toggle { border: 1px solid var(--line); }
 .compare-toggle.selected { background: var(--ink); color: #fff; border-color: var(--ink); }
 .offer-list { list-style: none; margin: 10px 0 0; padding: 0; border-top: 1px solid #f0f0f3; }
