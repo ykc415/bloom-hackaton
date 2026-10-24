@@ -33,6 +33,11 @@ export const chatSchema = z.object({
 });
 export type ChatInput = z.infer<typeof chatSchema>;
 
+export const homeSchema = z.object({
+  facts: z.array(factSchema).min(1).max(80),
+  locale: localeSchema,
+});
+
 export const syncSchema = z.object({
   after: z.string().datetime().nullable().default(null),
   facts: z.array(factSchema).max(80).default([]),

@@ -1,9 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Brain, Check, Footprints, Gift, Headphones, Lamp, Luggage, Mail, RefreshCw, Shirt, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  ArrowRight, ArrowUpRight, Baby, Bike, BookOpen, Brain, Camera, Car, Check, Coffee, Dog, Dumbbell, Flower2, Footprints, Gamepad2, Gem, Gift, Headphones, House,
+  Lamp, Laptop, Leaf, Luggage, Mail, Music, Palette, PawPrint, Plane, RefreshCw, Shirt, ShieldCheck, ShoppingBag, Sparkles, Tent, UtensilsCrossed, Watch, Wine,
+  type LucideIcon,
+} from 'lucide-react';
 import { useI18n, type MessageKey } from '@/lib/i18n';
-import type { Fact } from '@/lib/types';
+import type { Fact, HomeContent, HomeIcon } from '@/lib/types';
 
 const prompts = [
   { icon: Luggage, text: 'home.prompt1' },
@@ -17,6 +21,12 @@ const categories = [
   { icon: Lamp, n: 3 },
   { icon: Headphones, n: 4 },
 ] as const;
+
+const icons: Record<HomeIcon, LucideIcon> = {
+  shirt: Shirt, shoe: Footprints, sparkles: Sparkles, lamp: Lamp, headphones: Headphones, coffee: Coffee, dumbbell: Dumbbell, gift: Gift, baby: Baby,
+  dog: Dog, book: BookOpen, gamepad: Gamepad2, plane: Plane, utensils: UtensilsCrossed, watch: Watch, bag: ShoppingBag, luggage: Luggage, leaf: Leaf,
+  music: Music, camera: Camera, bike: Bike, paw: PawPrint, house: House, laptop: Laptop, gem: Gem, palette: Palette, tent: Tent, wine: Wine, flower: Flower2, car: Car,
+};
 
 const budgets = [1, 2, 3] as const;
 const tryAsking = ['personal.try1', 'personal.try2', 'personal.try3'] as const;
@@ -32,6 +42,7 @@ type Props = {
   facts: Fact[];
   orders: number;
   ready: { orders: number } | null;
+  personalized: HomeContent | null;
   onConnect: () => void;
   onPicks: () => void;
   onSync: () => void;
@@ -55,7 +66,7 @@ function FactChips({ facts }: { facts: Fact[] }) {
   );
 }
 
-function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, ready, onConnect, onPicks, onSync, onMemory, onPrompt }: Omit<Props, 'composer' | 'disabled'>) {
+function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, ready, onConnect, onPicks, onSync, onMemory, onPrompt }: Omit<Props, 'composer' | 'disabled' | 'personalized'>) {
   const { t, tc } = useI18n();
   if (sync) {
     return (
@@ -147,10 +158,20 @@ function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, 
   );
 }
 
-export function HomeView({ composer, disabled, ...personal }: Props) {
+export function HomeView({ composer, disabled, personalized, ...personal }: Props) {
   const { t } = useI18n();
   const { onPrompt } = personal;
   const k = (key: string) => t(key as MessageKey);
+  // Personalized shortcuts when memory allows it; otherwise the default starting points.
+  const chips = personalized
+    ? personalized.prompts.map(p => ({ Icon: icons[p.icon] ?? Sparkles, text: p.text }))
+    : prompts.map(p => ({ Icon: p.icon, text: t(p.text) }));
+  const cards = personalized
+    ? personalized.categories.map(c => ({ Icon: icons[c.icon] ?? Sparkles, name: c.name, description: c.description, prompt: c.prompt }))
+    : categories.map(({ icon, n }) => ({ Icon: icon, name: k(`home.cat${n}Name`), description: k(`home.cat${n}Text`), prompt: k(`home.cat${n}Prompt`) }));
+  const tiers = personalized
+    ? personalized.budgets.map((b, i) => ({ ...b, usual: i === personalized.usualTier }))
+    : budgets.map(n => ({ label: k(`home.budget${n}Label`), title: k(`home.budget${n}Title`), text: k(`home.budget${n}Text`), note: k(`home.budget${n}Note`), prompt: k(`home.budget${n}Prompt`), usual: n === 2 }));
   return (
     <>
       <section className="home-hero">
@@ -160,8 +181,8 @@ export function HomeView({ composer, disabled, ...personal }: Props) {
         {composer}
         <div className="composer-hint"><span>{t('home.hint')}</span><span><kbd>↵</kbd> {t('home.hintEnter')}</span></div>
         <div className="prompt-chips">
-          {prompts.map(({ icon: Icon, text }) => (
-            <button type="button" key={text} disabled={disabled} onClick={() => onPrompt(t(text))}><Icon size={14} aria-hidden />{t(text)}<ArrowUpRight size={13} aria-hidden /></button>
+          {chips.map(({ Icon, text }) => (
+            <button type="button" key={text} disabled={disabled} onClick={() => onPrompt(text)}><Icon size={14} aria-hidden />{text}<ArrowUpRight size={13} aria-hidden /></button>
           ))}
         </div>
       </section>
@@ -172,29 +193,39 @@ export function HomeView({ composer, disabled, ...personal }: Props) {
       </section>
 
       <section className="home-section" aria-labelledby="style-title">
-        <SectionHeading id="style-title" title={t('home.styleTitle')} text={t('home.styleText')} label={t('home.styleLabel')} />
+        <SectionHeading
+          id="style-title"
+          title={personalized ? t('home.styleTitleMine') : t('home.styleTitle')}
+          text={personalized ? t('home.styleTextMine') : t('home.styleText')}
+          label={personalized ? t('home.styleLabelMine') : t('home.styleLabel')}
+        />
         <div className="category-grid">
-          {categories.map(({ icon: Icon, n }) => (
-            <button type="button" className="category-card" key={n} disabled={disabled} onClick={() => onPrompt(k(`home.cat${n}Prompt`))}>
+          {cards.map(({ Icon, name, description, prompt }) => (
+            <button type="button" className="category-card" key={name} disabled={disabled} onClick={() => onPrompt(prompt)}>
               <Icon size={24} strokeWidth={1.5} aria-hidden />
               <ArrowUpRight size={15} className="card-arrow" aria-hidden />
-              <strong>{k(`home.cat${n}Name`)}</strong>
-              <span>{k(`home.cat${n}Text`)}</span>
+              <strong>{name}</strong>
+              <span>{description}</span>
             </button>
           ))}
         </div>
       </section>
 
       <section className="home-section" aria-labelledby="budget-title">
-        <SectionHeading id="budget-title" title={t('home.budgetTitle')} text={t('home.budgetText')} label={t('home.budgetLabel')} />
+        <SectionHeading
+          id="budget-title"
+          title={personalized ? t('home.budgetTitleMine') : t('home.budgetTitle')}
+          text={personalized ? t('home.budgetTextMine') : t('home.budgetText')}
+          label={t('home.budgetLabel')}
+        />
         <div className="budget-grid">
-          {budgets.map(n => (
-            <button type="button" className={`budget-card${n === 2 ? ' accent' : ''}`} key={n} disabled={disabled} onClick={() => onPrompt(k(`home.budget${n}Prompt`))}>
-              <span className="budget-label">{k(`home.budget${n}Label`)}</span>
+          {tiers.map(tier => (
+            <button type="button" className={`budget-card${tier.usual ? ' accent' : ''}`} key={tier.title} disabled={disabled} onClick={() => onPrompt(tier.prompt)}>
+              <span className="budget-label">{tier.label}{personalized && tier.usual && <em className="usual-pill">{t('home.usualTier')}</em>}</span>
               <ArrowUpRight size={15} className="card-arrow" aria-hidden />
-              <strong>{k(`home.budget${n}Title`)}</strong>
-              <span className="budget-text">{k(`home.budget${n}Text`)}</span>
-              <span className="budget-note">{k(`home.budget${n}Note`)}</span>
+              <strong>{tier.title}</strong>
+              <span className="budget-text">{tier.text}</span>
+              <span className="budget-note">{tier.note}</span>
             </button>
           ))}
         </div>

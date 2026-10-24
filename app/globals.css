@@ -182,6 +182,7 @@ img { display: block; max-width: 100%; }
 .budget-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; text-align: left; padding: 20px; background: #fff; color: var(--ink); }
 .budget-label { font: 9px var(--display); letter-spacing: 0.07em; color: #999da5; }
 .budget-card.accent .budget-label { color: var(--orange); }
+.usual-pill { margin-left: 8px; padding: 2px 7px; border-radius: 10px; background: #fff1eb; color: var(--orange); font-style: normal; font-size: 8px; letter-spacing: 0.04em; vertical-align: 1px; }
 .budget-card strong { font: 600 24px var(--display); letter-spacing: -0.045em; margin: 15px 0 6px; }
 .budget-text { font-size: 10px; color: #8b8e98; line-height: 1.6; }
 .budget-note { align-self: stretch; margin-top: 20px; padding-top: 12px; border-top: 1px solid #f0f0f3; color: #afb1b8; font-size: 9px; }

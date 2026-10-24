@@ -31,6 +31,20 @@ export type PriceInsight = { status: 'low' | 'typical' | 'high'; current: number
 /** A saved product. `price` is the baseline used to detect price drops on later visits. */
 export type Saved = { product: Product; price: number; current: number; savedAt: string };
 
+export const homeIcons = [
+  'shirt', 'shoe', 'sparkles', 'lamp', 'headphones', 'coffee', 'dumbbell', 'gift', 'baby', 'dog', 'book', 'gamepad', 'plane', 'utensils', 'watch',
+  'bag', 'luggage', 'leaf', 'music', 'camera', 'bike', 'paw', 'house', 'laptop', 'gem', 'palette', 'tent', 'wine', 'flower', 'car',
+] as const;
+export type HomeIcon = (typeof homeIcons)[number];
+
+/** Home-screen shortcuts written from the shopper's memory. */
+export type HomeContent = {
+  prompts: { icon: HomeIcon; text: string }[];
+  categories: { icon: HomeIcon; name: string; description: string; prompt: string }[];
+  budgets: { label: string; title: string; text: string; note: string; prompt: string }[];
+  usualTier: number;
+};
+
 export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household'] as const;
 export type FactCategory = (typeof factCategories)[number];
 

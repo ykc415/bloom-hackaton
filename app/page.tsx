@@ -10,7 +10,7 @@ import { ProductCard } from '@/components/product-card';
 import { ProductDialog } from '@/components/product-dialog';
 import { Sidebar } from '@/components/sidebar';
 import { I18nProvider, useI18n } from '@/lib/i18n';
-import { money, type ChatEvent, type Fact, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
+import { money, type ChatEvent, type Fact, type HomeContent, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
 
 type View = 'home' | 'chat' | 'memory' | 'saved';
 type Message = {
@@ -21,12 +21,13 @@ type Conversation = { id: string; title: string; updatedAt: string; messages: Me
 type Stored = {
   facts: Fact[]; conversations: Conversation[]; summary: string | null; orders: number; lastSync: string | null; saved: Saved[];
   memoryEnabled: boolean; learnFromChat: boolean;
+  home: { key: string; data: HomeContent } | null;
 };
 type Gmail = { connected: boolean; email?: string };
 type Sync = { status: string; merchants: string[]; emails: number };
 
 const STORAGE_KEY = 'magent.v2';
-const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true };
+const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true, home: null };
 
 async function readEvents<E>(response: Response, onEvent: (event: E) => void) {
   if (!response.ok || !response.body) {
@@ -59,6 +60,14 @@ function apiText(m: Message) {
   if (m.role === 'user') return m.text;
   const shown = m.products?.length ? `\n[Shown: ${m.products.map(p => `id=${p.id} "${p.title}" $${p.offers[0].price}`).join('; ')}]` : '';
   return (m.text + shown).trim() || '…';
+}
+
+// Short fingerprint of the memory + language, so the personalized home is rebuilt only when either changes.
+function homeKey(facts: Fact[], locale: string) {
+  const source = locale + facts.map(f => `${f.key}:${f.text}`).sort().join('|');
+  let hash = 5381;
+  for (let i = 0; i < source.length; i++) hash = ((hash * 33) ^ source.charCodeAt(i)) >>> 0;
+  return hash.toString(36);
 }
 
 function RichText({ text }: { text: string }) {
@@ -138,6 +147,25 @@ function App() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, conversations }));
     } catch { /* storage full */ }
   }, [data, hydrated]);
+
+  // Personalize the home shortcuts in the background whenever memory or language changes.
+  const personalKey = data.memoryEnabled && data.facts.length ? homeKey(data.facts, locale) : null;
+  useEffect(() => {
+    if (!hydrated || !gmail?.connected || !personalKey || dataRef.current.home?.key === personalKey) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch('/api/home', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ facts: dataRef.current.facts, locale }),
+      })
+        .then(r => (r.ok ? r.json() : null))
+        .then((content: HomeContent | null) => { if (content) update(d => ({ ...d, home: { key: personalKey, data: content } })); })
+        .catch(() => undefined);
+    }, 1500);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+    // update only touches refs/state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, gmail?.connected, personalKey, locale]);
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 4000); return () => clearTimeout(t); } }, [toast]);
 
@@ -398,6 +426,7 @@ function App() {
               orders={data.orders}
               onConnect={connect}
               ready={ready}
+              personalized={personalKey && data.home ? data.home.data : null}
               onPicks={() => void send(t('chat.picksPrompt'), { auto: true, fresh: true })}
               onSync={() => void runSync(data.lastSync, false)}
               onMemory={() => openView('memory')}
