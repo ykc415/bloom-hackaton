@@ -180,7 +180,7 @@ export default function Home() {
     const recentProducts = history.flatMap(m => m.products ?? []).slice(-12);
 
     update(d => {
-      const base = d.conversations.find(c => c.id === chatId) ?? { id: chatId, title: options.auto ? 'Your personalized picks' : text.slice(0, 60), updatedAt: now, messages: [] };
+      const base = d.conversations.find(c => c.id === chatId) ?? { id: chatId, title: options.auto ? `Your picks · ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : text.slice(0, 60), updatedAt: now, messages: [] };
       const chat = { ...base, updatedAt: now, messages: [...base.messages, user, assistant] };
       return { ...d, conversations: [chat, ...d.conversations.filter(c => c.id !== chatId)].slice(0, 30) };
     });
