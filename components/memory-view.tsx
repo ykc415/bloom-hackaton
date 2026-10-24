@@ -37,7 +37,7 @@ export function MemoryView({ facts, summary, orders, lastSync, gmailEmail, synci
             <span className={`profile-avatar${gmailEmail ? ' connected' : ''}`}><Mail size={16} aria-hidden /></span>
             <strong>{gmailEmail ? 'Gmail connected' : 'Gmail not connected'}</strong>
             <p>{gmailEmail ?? 'Connect Gmail and magent learns your brands, sizes and budgets from your order emails.'}</p>
-            {gmailEmail && <p className="memory-meta">{orders ? `${orders} orders analyzed` : 'No orders analyzed yet'}{lastSync ? ` · checked ${when(lastSync)}` : ''}</p>}
+            {gmailEmail && <p className="memory-meta">{orders ? `${orders} order${orders === 1 ? '' : 's'} analyzed` : 'No orders analyzed yet'}{lastSync ? ` · checked ${when(lastSync)}` : ''}</p>}
             <div className="memory-card-actions">
               {gmailEmail ? (
                 <>

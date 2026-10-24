@@ -71,7 +71,7 @@ function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, 
       <div className="personal-card profile">
         <span className="personal-icon"><Brain size={22} strokeWidth={1.5} aria-hidden /></span>
         <div className="personal-copy">
-          <p className="personal-kicker">YOUR TASTE PROFILE{orders ? ` · FROM ${orders} ORDERS` : ''}</p>
+          <p className="personal-kicker">YOUR TASTE PROFILE{orders ? ` · FROM ${orders} ORDER${orders === 1 ? '' : 'S'}` : ''}</p>
           <h3>{summary ?? 'magent knows your sizes, brands and budgets.'}</h3>
           <div className="fact-chips">
             {facts.slice(0, 6).map(f => <span key={f.key} title={f.evidence}><b>{f.title}</b>{f.text}</span>)}
