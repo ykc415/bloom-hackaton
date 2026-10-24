@@ -6,6 +6,7 @@ import { HomeView } from '@/components/home-view';
 import { Landing } from '@/components/landing';
 import { MemoryView } from '@/components/memory-view';
 import { ProductCard } from '@/components/product-card';
+import { ProductDialog } from '@/components/product-dialog';
 import { Sidebar } from '@/components/sidebar';
 import { money, type ChatEvent, type Fact, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
 
@@ -79,6 +80,7 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [detail, setDetail] = useState<Product | null>(null);
   const [toast, setToast] = useState('');
   const dataRef = useRef(EMPTY);
   const activeRef = useRef<string | null>(null);
@@ -410,7 +412,7 @@ export default function Home() {
                     {!!m.products?.length && (
                       <>
                         <div className={`product-grid${m.products.length === 2 ? ' two-products' : ''}`}>
-                          {m.products.map(p => <ProductCard key={p.id} product={p} saved={data.saved.some(s => s.product.id === p.id)} onSave={toggleSave} />)}
+                          {m.products.map(p => <ProductCard key={p.id} product={p} saved={data.saved.some(s => s.product.id === p.id)} onSave={toggleSave} onDetail={setDetail} />)}
                         </div>
                         <p className="recommendation-note">Prices and availability can change. Confirm size and final price at the retailer.</p>
                       </>
@@ -458,7 +460,7 @@ export default function Home() {
               {data.saved.length ? (
                 <div className="product-grid">
                   {data.saved.map(s => (
-                    <ProductCard key={s.product.id} product={s.product} saved onSave={toggleSave} drop={s.price - s.current > 0.5 ? s.price - s.current : undefined} />
+                    <ProductCard key={s.product.id} product={s.product} saved onSave={toggleSave} onDetail={setDetail} drop={s.price - s.current > 0.5 ? s.price - s.current : undefined} />
                   ))}
                 </div>
               ) : (
@@ -476,6 +478,14 @@ export default function Home() {
         {view === 'chat' && <div className="composer-dock">{composer(false)}</div>}
       </div>
 
+      {detail && (
+        <ProductDialog
+          product={detail}
+          saved={data.saved.some(s => s.product.id === detail.id)}
+          onSave={p => toggleSave(p, null)}
+          onClose={() => setDetail(null)}
+        />
+      )}
       {toast && <div className="toast" role="status"><Check size={16} aria-hidden />{toast}</div>}
     </div>
   );

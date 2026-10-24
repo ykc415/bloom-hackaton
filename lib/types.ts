@@ -11,6 +11,20 @@ export type Product = {
   reason?: string;
 };
 
+export type VariantOption = { name: string; values: { label: string; exists: boolean; productId: string | null; thumbnail: string | null }[] };
+
+/** Everything the detail view needs. `offers` are for the selected options; `matched` is false when the retailer data could not honor the selection. */
+export type ProductDetail = Product & {
+  images: string[];
+  description: string;
+  materials: string[];
+  features: string[];
+  attributes: [string, string[]][];
+  options: VariantOption[];
+  selected: Record<string, string>;
+  matched: boolean;
+};
+
 /** 90-day price statistics for a product (Channel3 price history). */
 export type PriceInsight = { status: 'low' | 'typical' | 'high'; current: number; mean: number; min: number; max: number };
 

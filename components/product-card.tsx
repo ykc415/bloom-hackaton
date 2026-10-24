@@ -8,6 +8,7 @@ type Props = {
   product: Product;
   saved: boolean;
   onSave: (product: Product, insight: PriceInsight | null) => void;
+  onDetail: (product: Product) => void;
   drop?: number; // how much the price fell since it was saved
 };
 
@@ -18,7 +19,7 @@ function InsightBadge({ insight, price }: { insight: PriceInsight; price: number
   return <p className="insight">Fair price · 90-day avg {money(insight.mean)}</p>;
 }
 
-export function ProductCard({ product, saved, onSave, drop }: Props) {
+export function ProductCard({ product, saved, onSave, onDetail, drop }: Props) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
   const [insight, setInsight] = useState<PriceInsight | null>(null);
@@ -49,15 +50,15 @@ export function ProductCard({ product, saved, onSave, drop }: Props) {
           <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
         </button>
       </div>
-      <a className="product-photo" href={best.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${product.title} at ${best.merchant}`}>
+      <button type="button" className="product-photo" onClick={() => onDetail(product)} aria-label={`A closer look at ${product.title}`}>
         {product.image && !failed
           ? <img src={product.image} alt="" loading="lazy" onError={() => setFailed(true)} />
           : <span className="photo-fallback"><Package size={36} strokeWidth={1} aria-hidden /><span>Image unavailable</span></span>}
         <span className="photo-arrow" aria-hidden><ArrowUpRight size={17} /></span>
-      </a>
+      </button>
       <div className="product-copy">
         <p className="product-category">{product.category || 'Selected for you'}</p>
-        <h3><a href={best.url} target="_blank" rel="noopener noreferrer">{product.title}</a></h3>
+        <h3><button type="button" onClick={() => onDetail(product)}>{product.title}</button></h3>
         <div className="price-row">
           <strong>{money(best.price)}</strong>
           {best.compareAt && <del>{money(best.compareAt)}</del>}
