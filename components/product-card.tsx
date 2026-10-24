@@ -11,10 +11,11 @@ type Props = {
   drop?: number; // how much the price fell since it was saved
 };
 
-function InsightBadge({ insight }: { insight: PriceInsight }) {
-  if (insight.status === 'low') return <p className="insight low"><TrendingDown size={13} aria-hidden /> Lower than usual · 90-day avg {money(insight.mean)}</p>;
-  if (insight.status === 'high') return <p className="insight high"><TrendingUp size={13} aria-hidden /> Higher than usual · 90-day avg {money(insight.mean)}</p>;
-  return <p className="insight">Fair price · 90-day range {money(insight.min)}–{money(insight.max)}</p>;
+// Judge the price we show, not Channel3's canonical "current" price (it can be another store or variant).
+function InsightBadge({ insight, price }: { insight: PriceInsight; price: number }) {
+  if (price <= insight.min || price < insight.mean * 0.92) return <p className="insight low"><TrendingDown size={13} aria-hidden /> Lower than usual · 90-day avg {money(insight.mean)}</p>;
+  if (price > insight.mean * 1.08) return <p className="insight high"><TrendingUp size={13} aria-hidden /> Higher than usual · 90-day avg {money(insight.mean)}</p>;
+  return <p className="insight">Fair price · 90-day avg {money(insight.mean)}</p>;
 }
 
 export function ProductCard({ product, saved, onSave, drop }: Props) {
@@ -62,7 +63,7 @@ export function ProductCard({ product, saved, onSave, drop }: Props) {
           {best.compareAt && <del>{money(best.compareAt)}</del>}
           <span>at {best.merchant}</span>
         </div>
-        {drop ? <p className="insight low"><TrendingDown size={13} aria-hidden /> Dropped {money(drop)} since you saved it</p> : insight && <InsightBadge insight={insight} />}
+        {drop ? <p className="insight low"><TrendingDown size={13} aria-hidden /> Dropped {money(drop)} since you saved it</p> : insight && <InsightBadge insight={insight} price={best.price} />}
         {product.reason && <p className="product-reason"><Sparkles size={13} aria-hidden />{product.reason}</p>}
         <p className="product-stores">
           <span className={`stock-dot${best.inStock ? ' green' : ''}`} />
