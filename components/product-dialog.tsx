@@ -10,6 +10,7 @@ const without = (selection: Record<string, string>, name: string) => Object.from
 
 export function ProductDialog({ product, saved, onSave, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [productId, setProductId] = useState(product.id);
   const [selection, setSelection] = useState<Record<string, string>>({});
   const [detail, setDetail] = useState<ProductDetail | null>(null);
@@ -17,7 +18,8 @@ export function ProductDialog({ product, saved, onSave, onClose }: Props) {
   const [error, setError] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
 
-  useEffect(() => { dialogRef.current?.showModal(); }, []);
+  // Focus the panel, not the close button, so the dialog opens without a focus ring on X.
+  useEffect(() => { dialogRef.current?.showModal(); panelRef.current?.focus(); }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,7 +64,7 @@ export function ProductDialog({ product, saved, onSave, onClose }: Props) {
       onClose={onClose}
       onClick={e => { if (e.target === dialogRef.current) close(); }}
     >
-      <div className="modal-panel">
+      <div className="modal-panel" ref={panelRef} tabIndex={-1}>
         <header className="modal-heading">
           <h2>A closer look</h2>
           <button type="button" className="icon-button" onClick={close} aria-label="Close"><X size={20} /></button>

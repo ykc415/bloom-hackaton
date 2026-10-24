@@ -369,6 +369,7 @@ img { display: block; max-width: 100%; }
 .modal { border: 0; padding: 20px; background: transparent; width: min(1080px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); overflow-y: auto; color: var(--ink); }
 .modal::backdrop { background: #10111665; backdrop-filter: blur(4px); }
 .modal-panel { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 30px 80px #10111630; }
+.modal-panel:focus { outline: none; }
 .modal-heading { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 18px 28px; background: #fff; border-bottom: 1px solid var(--line); }
 .modal-heading h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; padding: 26px 28px; }
