@@ -84,6 +84,7 @@ export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [detail, setDetail] = useState<Product | null>(null);
+  const [ready, setReady] = useState<{ orders: number } | null>(null);
   const [toast, setToast] = useState('');
   const dataRef = useRef(EMPTY);
   const activeRef = useRef<string | null>(null);
@@ -142,7 +143,7 @@ export default function Home() {
     if (syncingRef.current) return;
     syncingRef.current = true;
     setSync({ status: 'Connecting to Gmail…', merchants: [], emails: 0 });
-    let picks = false;
+    if (initial) { setReady(null); window.setTimeout(() => document.getElementById('personal')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }
     try {
       const response = await fetch('/api/gmail/sync', {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -159,7 +160,9 @@ export default function Home() {
           update(d => facts
             ? { ...d, lastSync: syncedAt, facts: mergeGmailFacts(d.facts, facts), summary: summary ?? d.summary, orders: after ? d.orders + orders : orders }
             : { ...d, lastSync: syncedAt });
-          if (initial) { picks = !!facts?.length; if (!facts?.length) setToast('No order emails found in the last 12 months.'); }
+          // First sync: announce that picks are now personalized instead of jumping into recommendations.
+          if (initial && facts?.length) { setReady({ orders }); setToast('Your taste profile is ready. Every pick is now personalized.'); }
+          else if (initial) setToast('No order emails found in the last 12 months.');
           else setToast(orders ? `Added ${orders} new order${orders > 1 ? 's' : ''} from Gmail to your memory` : 'Gmail checked · no new orders');
         }
       });
@@ -169,7 +172,6 @@ export default function Home() {
       syncingRef.current = false;
       setSync(null);
     }
-    if (picks) void send(PICKS_PROMPT, { auto: true, fresh: true });
   }
 
   async function send(raw: string, options: { auto?: boolean; fresh?: boolean } = {}) {
@@ -388,6 +390,7 @@ export default function Home() {
               facts={data.facts}
               orders={data.orders}
               onConnect={connect}
+              ready={ready}
               onPicks={() => void send(PICKS_PROMPT, { auto: true, fresh: true })}
               onSync={() => void runSync(data.lastSync, false)}
               onMemory={() => openView('memory')}

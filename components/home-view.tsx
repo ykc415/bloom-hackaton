@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { ArrowRight, ArrowUpRight, Brain, Footprints, Gift, Headphones, Lamp, Luggage, Mail, RefreshCw, Shirt, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Brain, Check, Footprints, Gift, Headphones, Lamp, Luggage, Mail, RefreshCw, Shirt, ShieldCheck, Sparkles } from 'lucide-react';
 import type { Fact } from '@/lib/types';
 
 const prompts = [
@@ -33,6 +33,7 @@ type Props = {
   summary: string | null;
   facts: Fact[];
   orders: number;
+  ready: { orders: number } | null;
   onConnect: () => void;
   onPicks: () => void;
   onSync: () => void;
@@ -48,7 +49,9 @@ function SectionHeading({ id, title, text, label }: { id: string; title: string;
   );
 }
 
-function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, onConnect, onPicks, onSync, onMemory }: Omit<Props, 'composer' | 'disabled' | 'onPrompt'>) {
+const tryAsking = ['Something new in my style', 'What should I restock?', 'A gift idea within my usual budget'];
+
+function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, ready, onConnect, onPicks, onSync, onMemory, onPrompt }: Omit<Props, 'composer' | 'disabled'>) {
   if (sync) {
     return (
       <div className="personal-card" aria-live="polite">
@@ -62,6 +65,29 @@ function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, 
               <div className="merchant-chips">{sync.merchants.map(name => <span key={name}>{name}</span>)}</div>
             </>
           )}
+        </div>
+      </div>
+    );
+  }
+  if (gmailEmail && facts.length && ready) {
+    return (
+      <div className="personal-card profile ready" role="status">
+        <span className="personal-icon done"><Check size={24} strokeWidth={2} aria-hidden /></span>
+        <div className="personal-copy">
+          <p className="personal-kicker">PROFILE READY · FROM {ready.orders} ORDER{ready.orders === 1 ? '' : 'S'}</p>
+          <h3>magent now knows your taste. Every pick from here is made for you.</h3>
+          {summary && <p>{summary}</p>}
+          <div className="fact-chips">
+            {facts.slice(0, 6).map(f => <span key={f.key} title={f.evidence}><b>{f.title}</b>{f.text}</span>)}
+          </div>
+          <p className="ready-try">Try asking</p>
+          <div className="ready-prompts">
+            {tryAsking.map(text => <button type="button" key={text} onClick={() => onPrompt(text)}>{text}<ArrowUpRight size={13} aria-hidden /></button>)}
+          </div>
+          <div className="personal-actions">
+            <button type="button" className="primary-button" onClick={onPicks}>Show my picks <ArrowRight size={16} aria-hidden /></button>
+            <button type="button" className="secondary-button" onClick={onMemory}>Review what magent learned</button>
+          </div>
         </div>
       </div>
     );
@@ -120,7 +146,8 @@ function PersonalCard({ gmailEmail, gmailChecked, sync, summary, facts, orders, 
   );
 }
 
-export function HomeView({ composer, disabled, onPrompt, ...personal }: Props) {
+export function HomeView({ composer, disabled, ...personal }: Props) {
+  const { onPrompt } = personal;
   return (
     <>
       <section className="home-hero">
@@ -136,7 +163,7 @@ export function HomeView({ composer, disabled, onPrompt, ...personal }: Props) {
         </div>
       </section>
 
-      <section className="home-section" aria-labelledby="personal-title">
+      <section className="home-section" id="personal" aria-labelledby="personal-title">
         <SectionHeading id="personal-title" title="Make it personal." text="Your taste, learned from what you already buy." label="01 — YOUR TASTE" />
         <PersonalCard {...personal} />
       </section>

@@ -147,6 +147,13 @@ img { display: block; max-width: 100%; }
 .personal-card.profile { background: linear-gradient(135deg, #fff 55%, #fff5f1); }
 .personal-icon { width: 48px; height: 48px; border-radius: 12px; background: #f5f5f7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .personal-icon.syncing { color: var(--orange); }
+.personal-card.ready { border-color: #f6c9b6; box-shadow: 0 10px 34px #fa4f1b14; }
+.personal-icon.done { background: var(--orange); color: #fff; }
+.ready-try { margin-top: 18px !important; font: 500 9px var(--display) !important; letter-spacing: 0.12em; color: #9a9ea6 !important; text-transform: uppercase; }
+.ready-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ready-prompts button { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; padding: 8px 12px; border: 1px solid #e4e5e9; background: #fff; border-radius: 20px; color: #5e6169; }
+.ready-prompts button svg { color: #a8abb2; }
+.ready-prompts button:hover { border-color: #b6b9c1; color: var(--ink); }
 .personal-copy { flex: 1; min-width: 0; }
 .personal-kicker { font: 500 9px var(--display); letter-spacing: 0.12em; color: var(--orange); margin-bottom: 8px; overflow-wrap: anywhere; }
 .personal-copy h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.35; }
