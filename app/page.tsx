@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Search, Sparkles, Square, UserRound } from 'lucide-react';
+import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Plug, Search, Sparkles, Square, UserRound } from 'lucide-react';
+import { ConnectionsView } from '@/components/connections-view';
 import { HomeView } from '@/components/home-view';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Landing } from '@/components/landing';
@@ -12,7 +13,7 @@ import { Sidebar } from '@/components/sidebar';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import { money, type ChatEvent, type Fact, type HomeContent, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
 
-type View = 'home' | 'chat' | 'memory' | 'saved';
+type View = 'home' | 'chat' | 'memory' | 'saved' | 'connections';
 type Message = {
   id: string; role: 'user' | 'assistant'; text: string;
   products?: Product[]; suggestions?: string[]; auto?: boolean; error?: boolean; memoryUsed?: number; memoryAdded?: number;
@@ -269,7 +270,7 @@ function App() {
     window.scrollTo({ top: 0 });
     window.setTimeout(() => inputRef.current?.focus(), 50);
   }
-  function openView(next: 'memory' | 'saved') { setMenuOpen(false); activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
+  function openView(next: 'memory' | 'saved' | 'connections') { setMenuOpen(false); activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
 
   function toggleSave(product: Product, insight: PriceInsight | null) {
     if (dataRef.current.saved.some(s => s.product.id === product.id)) {
@@ -344,7 +345,7 @@ function App() {
     </form>
   );
 
-  const breadcrumb = view === 'memory' ? t('nav.yourMemory') : view === 'saved' ? t('nav.savedFinds') : view === 'chat' && active ? active.title : '';
+  const breadcrumb = view === 'memory' ? t('nav.yourMemory') : view === 'saved' ? t('nav.savedFinds') : view === 'connections' ? t('nav.connections') : view === 'chat' && active ? active.title : '';
 
   // Logged out (no Gmail connection): show the service introduction instead of the app.
   if (!gmail) return <div className="boot" aria-busy="true"><img src="/brand/magent-symbol.webp" alt="magent" /></div>;
@@ -364,6 +365,8 @@ function App() {
         conversations={data.conversations}
         activeId={view === 'chat' ? activeId : null}
         memoryActive={view === 'memory'}
+        connectionsActive={view === 'connections'}
+        onConnections={() => openView('connections')}
         factCount={data.facts.length}
         gmailEmail={gmailEmail}
         syncing={!!sync}
@@ -403,6 +406,7 @@ function App() {
                     </div>
                     <button type="button" role="menuitem" onClick={() => openView('memory')}><Brain size={16} aria-hidden /> {t('nav.yourMemory')}</button>
                     <button type="button" role="menuitem" onClick={() => openView('saved')}><Bookmark size={16} aria-hidden /> {t('nav.savedFinds')}</button>
+                    <button type="button" role="menuitem" onClick={() => openView('connections')}><Plug size={16} aria-hidden /> {t('nav.connections')}</button>
                     {!gmailEmail && <button type="button" role="menuitem" onClick={connect}><Sparkles size={16} aria-hidden /> {t('common.connectGmail')}</button>}
                     <button type="button" role="menuitem" className="danger" onClick={() => void logout()}><LogOut size={16} aria-hidden /> {t('account.logout')}</button>
                   </div>
@@ -495,6 +499,8 @@ function App() {
               onSettings={patch => update(d => ({ ...d, ...patch }))}
             />
           )}
+
+          {view === 'connections' && <ConnectionsView gmailEmail={gmailEmail} onConnectGmail={connect} onToast={setToast} />}
 
           {view === 'saved' && (
             <>

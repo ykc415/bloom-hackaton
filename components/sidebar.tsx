@@ -1,13 +1,15 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { Brain, ChevronRight, Mail, MessageSquare, Plus, SlidersHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
+import { Brain, ChevronRight, Mail, MessageSquare, Plug, Plus, SlidersHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
 
 type Props = {
   open: boolean;
   conversations: { id: string; title: string }[];
   activeId: string | null;
   memoryActive: boolean;
+  connectionsActive: boolean;
+  onConnections: () => void;
   factCount: number;
   gmailEmail: string | null;
   syncing: boolean;
@@ -19,7 +21,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function Sidebar({ open, conversations, activeId, memoryActive, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
+export function Sidebar({ open, conversations, activeId, memoryActive, connectionsActive, onConnections, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
   const { t } = useI18n();
   return (
     <>
@@ -36,6 +38,9 @@ export function Sidebar({ open, conversations, activeId, memoryActive, factCount
           <button type="button" className="new-chat-button" onClick={onNew}><Plus size={17} aria-hidden />{t('nav.newChat')}</button>
           <button type="button" className={`memory-nav-button${memoryActive ? ' active' : ''}`} onClick={onMemory}>
             <Brain size={17} aria-hidden /><span>{t('nav.memory')}</span><small>{factCount ? t('nav.memoryCount', { count: factCount }) : t('nav.memoryEmpty')}</small>
+          </button>
+          <button type="button" className={`memory-nav-button nav-secondary${connectionsActive ? ' active' : ''}`} onClick={onConnections}>
+            <Plug size={17} aria-hidden /><span>{t('nav.connections')}</span><small>{gmailEmail ? 1 : 0}</small>
           </button>
           <p className="history-heading">{t('nav.recent')}</p>
           <nav className="conversation-list" aria-label={t('nav.recentAria')}>

@@ -374,6 +374,46 @@ img { display: block; max-width: 100%; }
   .memory-document-body { padding: 26px 18px; }
 }
 
+/* Connections (apps & services) */
+.connections { max-width: 860px; margin: 0 auto; padding-bottom: 110px; }
+.secure-card { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 16px; background: #f1f2f4; margin-bottom: 22px; }
+.secure-card > span { width: 46px; height: 46px; border-radius: 12px; background: #e3e5e9; color: #7c8089; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.secure-card strong { font-size: 14px; }
+.secure-card p { font-size: 12px; color: #81858e; margin-top: 2px; }
+.service-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; scrollbar-width: none; }
+.service-filters::-webkit-scrollbar { display: none; }
+.service-filters button { flex-shrink: 0; padding: 9px 16px; border-radius: 20px; background: #eef0f3; font-size: 13px; font-weight: 500; color: #3d4148; }
+.service-filters button:hover { background: #e4e6ea; }
+.service-filters button.active { background: var(--ink); color: #fff; }
+.service-panel { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 6px 18px; }
+.connected-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 0; border-bottom: 1px solid var(--line); text-align: left; }
+.connected-row strong { font-size: 14px; }
+.connected-icons { display: flex; gap: 6px; flex: 1; }
+.connected-icons .service-icon { width: 34px; height: 34px; border-radius: 9px; }
+.connected-count { color: #9a9ea6; font-size: 14px; }
+.connected-row > svg { color: #a8abb2; }
+.service-list { list-style: none; margin: 0; padding: 0; }
+.service-list li { display: flex; align-items: center; gap: 14px; padding: 13px 0; }
+.service-list li + li { border-top: 1px solid #f2f2f5; }
+.service-list li > div { flex: 1; min-width: 0; }
+.service-list strong { display: block; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.service-list p { font-size: 12px; color: #8b8f98; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.service-icon { width: 46px; height: 46px; border-radius: 12px; border: 1px solid #eceef1; background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; font: 700 18px var(--display); }
+.service-icon img { width: 60%; height: 60%; object-fit: contain; }
+.builtin-icon { background: #f6f3ee; border-color: #ece6dc; color: #a08c6c; }
+.service-add { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #9a9ea6; flex-shrink: 0; }
+.service-add:hover { background: #f3f3f6; color: var(--ink); }
+.service-connect { min-height: 34px; padding: 0 14px; font-size: 12px; }
+.service-connected { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 16px; background: #eaf5ee; color: #3f8a61; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.service-empty { padding: 30px 0; text-align: center; color: #8b8f98; font-size: 13px; }
+.builtin-section { margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--line); }
+.builtin-section h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
+.builtin-section > p { font-size: 12px; color: #8b8f98; margin: 6px 0 12px; }
+.service-list.builtin { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 4px 18px; }
+.service-search { position: fixed; z-index: 25; bottom: 22px; left: calc(var(--sidebar) + (100vw - var(--sidebar)) / 2); transform: translateX(-50%); width: min(560px, calc(100vw - var(--sidebar) - 40px)); display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-radius: 30px; background: #ffffffee; backdrop-filter: blur(14px); border: 1px solid var(--line); box-shadow: 0 12px 34px #17171914; color: #9a9ea6; }
+.service-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px; color: var(--ink); }
+.nav-secondary { margin-top: 4px; }
+
 /* Product detail dialog */
 .modal { border: 0; padding: 20px; background: transparent; width: min(1080px, calc(100vw - 24px)); max-width: none; max-height: calc(100dvh - 24px); overflow-y: auto; color: var(--ink); }
 .modal::backdrop { background: #10111665; backdrop-filter: blur(4px); }
