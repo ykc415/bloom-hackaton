@@ -26,6 +26,7 @@ export const chatSchema = z.object({
     .refine(m => m.at(-1)?.role === 'user' && !!m.at(-1)?.text.trim(), 'The last message must be a non-empty user message.'),
   facts: z.array(factSchema).max(80).default([]),
   recentProducts: z.array(productSchema).max(12).default([]),
+  capture: z.boolean().default(true),
 });
 export type ChatInput = z.infer<typeof chatSchema>;
 

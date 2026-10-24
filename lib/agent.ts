@@ -145,7 +145,7 @@ export async function runAgent(input: ChatInput, emit: (event: ChatEvent) => voi
       output_config: { effort: 'low' },
       cache_control: { type: 'ephemeral' },
       system: [{ type: 'text', text: SYSTEM }, { type: 'text', text: profileText(input.facts) }],
-      tools,
+      tools: input.capture ? tools : tools.filter(t => t.name !== 'remember_fact'),
       tool_choice: round === MAX_ROUNDS - 1 ? { type: 'none' } : { type: 'auto' },
       messages,
     }, { signal });

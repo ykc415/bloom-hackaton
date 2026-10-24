@@ -16,12 +16,15 @@ type Message = {
   products?: Product[]; suggestions?: string[]; auto?: boolean; error?: boolean; memoryUsed?: number; memoryAdded?: number;
 };
 type Conversation = { id: string; title: string; updatedAt: string; messages: Message[] };
-type Stored = { facts: Fact[]; conversations: Conversation[]; summary: string | null; orders: number; lastSync: string | null; saved: Saved[] };
+type Stored = {
+  facts: Fact[]; conversations: Conversation[]; summary: string | null; orders: number; lastSync: string | null; saved: Saved[];
+  memoryEnabled: boolean; learnFromChat: boolean;
+};
 type Gmail = { connected: boolean; email?: string };
 type Sync = { status: string; merchants: string[]; emails: number };
 
 const STORAGE_KEY = 'magent.v2';
-const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [] };
+const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true };
 const PICKS_PROMPT = 'Based on my profile, pick a few things I would love right now.';
 
 async function readEvents<E>(response: Response, onEvent: (event: E) => void) {
@@ -175,7 +178,7 @@ export default function Home() {
     const current = options.fresh ? undefined : dataRef.current.conversations.find(c => c.id === activeRef.current);
     const chatId = current?.id ?? crypto.randomUUID();
     const now = new Date().toISOString();
-    const facts = dataRef.current.facts;
+    const facts = dataRef.current.memoryEnabled ? dataRef.current.facts : [];
     const user: Message = { id: crypto.randomUUID(), role: 'user', text, auto: options.auto };
     const assistant: Message = { id: crypto.randomUUID(), role: 'assistant', text: '', memoryUsed: facts.length };
     const history = [...(current?.messages ?? []).filter(m => !m.error), user].slice(-20);
@@ -201,7 +204,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST', headers: { 'content-type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ messages: history.map(m => ({ role: m.role, text: apiText(m) })), facts, recentProducts }),
+        body: JSON.stringify({ messages: history.map(m => ({ role: m.role, text: apiText(m) })), facts, recentProducts, capture: dataRef.current.learnFromChat }),
       });
       await readEvents<ChatEvent>(response, event => {
         if (event.type === 'text') patch(m => ({ ...m, text: m.text + event.delta }));
@@ -440,11 +443,17 @@ export default function Home() {
               lastSync={data.lastSync}
               gmailEmail={gmailEmail}
               syncing={!!sync}
+              conversations={data.conversations}
+              memoryEnabled={data.memoryEnabled}
+              learnFromChat={data.learnFromChat}
+              onSaveFact={(fact, previousKey) => update(d => ({ ...d, facts: [fact, ...d.facts.filter(f => f.key !== fact.key && f.key !== previousKey)] }))}
               onDelete={key => update(d => ({ ...d, facts: d.facts.filter(f => f.key !== key) }))}
-              onClear={() => update(d => ({ ...d, facts: [], summary: null, orders: 0, lastSync: null }))}
-              onConnect={connect}
+              onClear={() => { if (window.confirm('Delete everything magent remembers on this device?')) update(d => ({ ...d, facts: [], summary: null, orders: 0, lastSync: null })); }}
               onSync={() => void runSync(data.lastSync, false)}
               onDisconnect={() => void disconnect()}
+              onOpenConversation={id => { activate(id, 'chat'); window.scrollTo({ top: 0 }); }}
+              onNewChat={newChat}
+              onSettings={patch => update(d => ({ ...d, ...patch }))}
             />
           )}
 
