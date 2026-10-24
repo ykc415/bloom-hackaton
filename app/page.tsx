@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Search, Sparkles, Square, UserRound } from 'lucide-react';
 import { HomeView } from '@/components/home-view';
+import { Landing } from '@/components/landing';
 import { MemoryView } from '@/components/memory-view';
 import { ProductCard } from '@/components/product-card';
 import { Sidebar } from '@/components/sidebar';
@@ -303,6 +304,17 @@ export default function Home() {
   );
 
   const breadcrumb = view === 'memory' ? 'Your memory' : view === 'saved' ? 'Saved finds' : view === 'chat' && active ? active.title : '';
+
+  // Logged out (no Gmail connection): show the service introduction instead of the app.
+  if (!gmail) return <div className="boot" aria-busy="true"><img src="/brand/magent-symbol.webp" alt="magent" /></div>;
+  if (!gmail.connected) {
+    return (
+      <>
+        <Landing onConnect={connect} />
+        {toast && <div className="toast centered" role="status"><Check size={16} aria-hidden />{toast}</div>}
+      </>
+    );
+  }
 
   return (
     <div className="studio-shell">
