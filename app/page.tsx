@@ -302,7 +302,7 @@ export default function Home() {
     </form>
   );
 
-  const breadcrumb = view === 'memory' ? 'Your memory' : view === 'saved' ? 'Saved finds' : view === 'chat' && active ? active.title : 'Find what you’ll love';
+  const breadcrumb = view === 'memory' ? 'Your memory' : view === 'saved' ? 'Saved finds' : view === 'chat' && active ? active.title : '';
 
   return (
     <div className="studio-shell">
@@ -330,8 +330,7 @@ export default function Home() {
               <img src="/brand/magent-symbol.webp" alt="" className="header-symbol" />
               <img src="/brand/magent-wordmark.webp" alt="magent" className="header-wordmark" />
             </button>
-            <span className="breadcrumb-slash">/</span>
-            <span className="breadcrumb-label">{breadcrumb}</span>
+            {breadcrumb && <><span className="breadcrumb-slash">/</span><span className="breadcrumb-label">{breadcrumb}</span></>}
           </div>
           <div className="topbar-right">
             <span className="region"><Globe2 size={14} aria-hidden />US · USD</span>
