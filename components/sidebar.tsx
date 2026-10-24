@@ -1,13 +1,16 @@
 'use client';
 
 import { useI18n } from '@/lib/i18n';
-import { Brain, ChevronRight, Mail, MessageSquare, Plug, Plus, Shapes, SlidersHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
+import { Bookmark, Brain, ChevronRight, Mail, MessageSquare, Plug, Plus, Shapes, SlidersHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
 
 type Props = {
   open: boolean;
   conversations: { id: string; title: string }[];
   activeId: string | null;
   memoryActive: boolean;
+  savedActive: boolean;
+  savedCount: number;
+  onSaved: () => void;
   connectionsActive: boolean;
   onConnections: () => void;
   artifactsActive: boolean;
@@ -23,7 +26,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function Sidebar({ open, conversations, activeId, memoryActive, connectionsActive, onConnections, artifactsActive, onArtifacts, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
+export function Sidebar({ open, conversations, activeId, memoryActive, savedActive, savedCount, onSaved, connectionsActive, onConnections, artifactsActive, onArtifacts, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
   const { t } = useI18n();
   return (
     <>
@@ -40,6 +43,9 @@ export function Sidebar({ open, conversations, activeId, memoryActive, connectio
           <button type="button" className="new-chat-button" onClick={onNew}><Plus size={17} aria-hidden />{t('nav.newChat')}</button>
           <button type="button" className={`memory-nav-button${memoryActive ? ' active' : ''}`} onClick={onMemory}>
             <Brain size={17} aria-hidden /><span>{t('nav.memory')}</span><small>{factCount ? t('nav.memoryCount', { count: factCount }) : t('nav.memoryEmpty')}</small>
+          </button>
+          <button type="button" className={`memory-nav-button nav-secondary${savedActive ? ' active' : ''}`} onClick={onSaved}>
+            <Bookmark size={17} aria-hidden /><span>{t('nav.savedFinds')}</span><small>{savedCount}</small>
           </button>
           <button type="button" className={`memory-nav-button nav-secondary${connectionsActive ? ' active' : ''}`} onClick={onConnections}>
             <Plug size={17} aria-hidden /><span>{t('nav.connections')}</span><small>{gmailEmail ? 1 : 0}</small>

@@ -407,6 +407,9 @@ function App() {
         conversations={data.conversations}
         activeId={view === 'chat' ? activeId : null}
         memoryActive={view === 'memory'}
+        savedActive={view === 'saved'}
+        savedCount={data.saved.length}
+        onSaved={() => openView('saved')}
         connectionsActive={view === 'connections'}
         artifactsActive={view === 'artifacts' || view === 'artifact'}
         onArtifacts={() => openView('artifacts')}
@@ -435,9 +438,6 @@ function App() {
           <div className="topbar-right">
             <span className="region"><Globe2 size={14} aria-hidden />{t('common.region')}</span>
             <LanguageSwitcher />
-            <button type="button" className={`saved-button${view === 'saved' ? ' active' : ''}`} onClick={() => openView('saved')}>
-              <Bookmark size={16} aria-hidden /><span className="saved-label">{t('nav.savedFinds')}</span>{data.saved.length > 0 && <span className="saved-count">{data.saved.length}</span>}
-            </button>
             <div className="account-menu-wrap">
               <button type="button" className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-label={t('nav.accountMenu')} aria-haspopup="menu" aria-expanded={menuOpen}><UserRound size={18} /></button>
               {menuOpen && (
