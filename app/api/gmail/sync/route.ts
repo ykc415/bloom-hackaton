@@ -31,14 +31,14 @@ export async function POST(request: Request) {
     for (const e of emails) { const name = senderName(e.from); counts.set(name, (counts.get(name) ?? 0) + 1); }
     emit({ type: 'merchants', merchants: [...counts].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name]) => name), emails: emails.length });
 
-    emit({ type: 'status', message: `Reading ${emails.length} emails with Claude Haiku…` });
+    emit({ type: 'status', message: `Reading your ${emails.length} order emails…` });
     const failures: unknown[] = [];
     const purchases = (await mapLimit(emails, 8, e => extractPurchase(e).catch(error => { failures.push(error); return null; })))
       .filter((p): p is Purchase => !!p);
     if (!purchases.length && failures.length === emails.length) throw failures[0];
     if (!purchases.length) return emit({ type: 'profile', summary: null, facts: null, orders: 0, syncedAt });
 
-    emit({ type: 'status', message: `Building your taste profile from ${purchases.length} orders with Claude Opus…` });
+    emit({ type: 'status', message: `Building your taste profile from ${purchases.length} orders…` });
     const profile = await synthesizeProfile(purchases, facts);
     const userKeys = new Set(facts.filter(f => f.source === 'chat').map(f => f.key));
     const gmailFacts: Fact[] = profile.facts
