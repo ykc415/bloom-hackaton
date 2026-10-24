@@ -66,7 +66,7 @@ export function ArtifactsView({ artifacts, factCount, searchCount, creating, onC
         {artifactKinds.map(k => (
           <button type="button" key={k} className={`template-card${active === k ? ' selected' : ''}`} onClick={() => pick(k)} disabled={!!creating && creating.kind !== k}>
             <TemplateArt kind={k} />
-            <span className="template-name">{t(`artifacts.kind.${k}`)} <em>{t('artifacts.new')}</em></span>
+            <span className="template-name">{t(`artifacts.kind.${k}`)}</span>
             <span className="template-desc">{t(`artifacts.desc.${k}`)}</span>
           </button>
         ))}

@@ -478,7 +478,6 @@ img { display: block; max-width: 100%; }
 }
 .template-card.selected .tpl-art { outline: 2px solid var(--ink); outline-offset: 2px; }
 .template-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
-.template-name em { font-style: normal; font-size: var(--fs-9); font-weight: 600; padding: 2px 7px; border-radius: 6px; background: #e7effa; color: #1d5fae; }
 .template-desc { font-size: var(--fs-11); color: #8b8f98; line-height: 1.5; }
 .tpl-art { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1.45; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
 .tpl-art.storefront { background: linear-gradient(160deg, #eaf1fb, #dbe6f5); }

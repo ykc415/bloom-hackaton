@@ -412,6 +412,7 @@ function App() {
         onSaved={() => openView('saved')}
         connectionsActive={view === 'connections'}
         artifactsActive={view === 'artifacts' || view === 'artifact'}
+        artifactsCount={data.artifacts.length}
         onArtifacts={() => openView('artifacts')}
         onConnections={() => openView('connections')}
         factCount={data.facts.length}

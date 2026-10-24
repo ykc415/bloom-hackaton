@@ -14,6 +14,7 @@ type Props = {
   connectionsActive: boolean;
   onConnections: () => void;
   artifactsActive: boolean;
+  artifactsCount: number;
   onArtifacts: () => void;
   factCount: number;
   gmailEmail: string | null;
@@ -26,7 +27,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function Sidebar({ open, conversations, activeId, memoryActive, savedActive, savedCount, onSaved, connectionsActive, onConnections, artifactsActive, onArtifacts, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
+export function Sidebar({ open, conversations, activeId, memoryActive, savedActive, savedCount, onSaved, connectionsActive, onConnections, artifactsActive, artifactsCount, onArtifacts, factCount, gmailEmail, syncing, onNew, onSelect, onDelete, onMemory, onConnect, onClose }: Props) {
   const { t } = useI18n();
   return (
     <>
@@ -51,7 +52,7 @@ export function Sidebar({ open, conversations, activeId, memoryActive, savedActi
             <Plug size={17} aria-hidden /><span>{t('nav.connections')}</span><small>{gmailEmail ? 1 : 0}</small>
           </button>
           <button type="button" className={`memory-nav-button nav-secondary${artifactsActive ? ' active' : ''}`} onClick={onArtifacts}>
-            <Shapes size={17} aria-hidden /><span>{t('nav.artifacts')}</span><small>{t('artifacts.new')}</small>
+            <Shapes size={17} aria-hidden /><span>{t('nav.artifacts')}</span><small>{artifactsCount}</small>
           </button>
           <p className="history-heading">{t('nav.recent')}</p>
           <nav className="conversation-list" aria-label={t('nav.recentAria')}>
