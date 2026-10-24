@@ -71,7 +71,7 @@ export type ArtifactEvent =
   | { type: 'error'; message: string }
   | { type: 'done' };
 
-export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household'] as const;
+export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household', 'returns'] as const;
 export type FactCategory = (typeof factCategories)[number];
 
 // "chat" facts were stated by the user and always win over "gmail" inferences with the same key.

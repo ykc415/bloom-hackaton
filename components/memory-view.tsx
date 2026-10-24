@@ -28,7 +28,7 @@ type Props = Settings & {
 };
 
 const fileNames: Record<FactCategory, string> = {
-  brands: 'brands.md', sizes: 'fit.md', budget: 'budget.md', style: 'style.md', interests: 'interests.md', household: 'household.md',
+  brands: 'brands.md', sizes: 'fit.md', budget: 'budget.md', style: 'style.md', interests: 'interests.md', household: 'household.md', returns: 'returns.md',
 };
 // Stored evidence values for facts written in the Memory editor; shown translated.
 const ADDED = 'Added in Memory';

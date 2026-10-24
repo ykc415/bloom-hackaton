@@ -38,14 +38,16 @@ export async function POST(request: Request) {
     if (!purchases.length && failures.length === emails.length) throw failures[0];
     if (!purchases.length) return emit({ type: 'profile', summary: null, facts: null, orders: 0, syncedAt });
 
-    emit({ type: 'status', code: 'building', count: purchases.length });
+    // Returns feed the profile too, but only purchases count as orders.
+    const orders = purchases.filter(p => p.kind === 'purchase').length;
+    emit({ type: 'status', code: 'building', count: orders });
     const profile = await synthesizeProfile(purchases, facts, locale);
     const userKeys = new Set(facts.filter(f => f.source === 'chat').map(f => f.key));
     const gmailFacts: Fact[] = profile.facts
       .filter(f => !userKeys.has(f.key))
       .slice(0, 16)
       .map(f => ({ ...f, key: f.key.slice(0, 64), title: f.title.slice(0, 120), text: f.text.slice(0, 500), evidence: f.evidence.slice(0, 300), source: 'gmail', updatedAt: syncedAt }));
-    emit({ type: 'profile', summary: profile.summary.slice(0, 400), facts: gmailFacts, orders: purchases.length, syncedAt });
+    emit({ type: 'profile', summary: profile.summary.slice(0, 400), facts: gmailFacts, orders, syncedAt });
     emit({ type: 'done' });
   });
 }

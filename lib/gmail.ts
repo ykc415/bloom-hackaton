@@ -86,9 +86,9 @@ async function gmail(path: string, accessToken: string, signal?: AbortSignal) {
 
 export const gmailAddress = async (accessToken: string) => String((await gmail('profile', accessToken)).emailAddress ?? '');
 
-const PURCHASES = '(category:purchases OR subject:(order OR receipt OR invoice OR shipped OR "your purchase" OR 주문 OR 영수증 OR 결제 OR 배송))';
+const PURCHASES = '(category:purchases OR subject:(order OR receipt OR invoice OR shipped OR "your purchase" OR return OR returned OR refund OR refunded OR exchange OR 주문 OR 영수증 OR 결제 OR 배송 OR 반품 OR 환불 OR 교환))';
 
-/** Up to 50 purchase-related emails from the last 12 months, or since `after`. */
+/** Up to 50 purchase-related emails (orders and returns) from the last 12 months, or since `after`. */
 export async function purchaseMessageIds(accessToken: string, after: Date | null, signal?: AbortSignal): Promise<string[]> {
   const since = after ? `after:${Math.floor(after.getTime() / 1000)}` : 'newer_than:1y';
   const q = `${since} ${PURCHASES} -in:spam -in:trash`;

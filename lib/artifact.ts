@@ -22,7 +22,7 @@ Page kinds:
 - storefront: the shopper's own boutique, curated across 3-4 areas they care about, in their sizes, style and usual budgets.
 - gift: a gift guide for the recipient and occasion in the request. Do not apply the shopper's own sizes or taste to the recipient.
 - restock: things they buy again and again (time to rebuy) plus a few smart upgrades.
-Use the memory and recent searches; the request, if any, comes first.
+Use the memory and recent searches; the request, if any, comes first. Treat "returns" memory as lessons and never feature a product they sent back.
 Return:
 - title: the page or store name (max 40 characters). tagline: max 70 characters. intro: 1-2 short sentences addressed to the shopper.
 - accent: a color that fits the mood.
