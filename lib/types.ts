@@ -33,9 +33,6 @@ export type Saved = { product: Product; price: number; current: number; savedAt:
 
 export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household'] as const;
 export type FactCategory = (typeof factCategories)[number];
-export const categoryLabels: Record<FactCategory, string> = {
-  brands: 'Brands', sizes: 'Sizes', budget: 'Budget', style: 'Style', interests: 'Interests', household: 'Household',
-};
 
 // "chat" facts were stated by the user and always win over "gmail" inferences with the same key.
 export type Fact = {
@@ -49,7 +46,8 @@ export type Fact = {
 };
 
 export type ChatEvent =
-  | { type: 'status'; message: string }
+  | { type: 'status'; code: 'thinking' }
+  | { type: 'status'; code: 'searching'; query: string }
   | { type: 'text'; delta: string }
   | { type: 'products'; products: Product[]; suggestions: string[] }
   | { type: 'fact'; fact: Fact }
@@ -57,7 +55,8 @@ export type ChatEvent =
   | { type: 'done' };
 
 export type SyncEvent =
-  | { type: 'status'; message: string }
+  | { type: 'status'; code: 'connecting' | 'looking' | 'checking' }
+  | { type: 'status'; code: 'reading' | 'building'; count: number }
   | { type: 'merchants'; merchants: string[]; emails: number }
   | { type: 'profile'; summary: string | null; facts: Fact[] | null; orders: number; syncedAt: string }
   | { type: 'reconnect' }

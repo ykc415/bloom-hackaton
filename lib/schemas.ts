@@ -1,4 +1,6 @@
 import { z } from 'zod';
+
+export const localeSchema = z.enum(['en', 'ko', 'ja']).default('en');
 import { factCategories } from './types';
 
 export const factSchema = z.object({
@@ -27,10 +29,12 @@ export const chatSchema = z.object({
   facts: z.array(factSchema).max(80).default([]),
   recentProducts: z.array(productSchema).max(12).default([]),
   capture: z.boolean().default(true),
+  locale: localeSchema,
 });
 export type ChatInput = z.infer<typeof chatSchema>;
 
 export const syncSchema = z.object({
   after: z.string().datetime().nullable().default(null),
   facts: z.array(factSchema).max(80).default([]),
+  locale: localeSchema,
 });

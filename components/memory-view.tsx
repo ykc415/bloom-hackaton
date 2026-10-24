@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import {
   ArrowUpRight, Brain, Check, ChevronRight, FileText, Folder, History, Lock, Mail, MessageSquare, Pencil, Plus, RefreshCw, Search, SlidersHorizontal, Sparkles, Trash2, X,
 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 import { factCategories, type Fact, type FactCategory } from '@/lib/types';
 
 type Conversation = { id: string; title: string; updatedAt: string };
@@ -26,41 +27,29 @@ type Props = Settings & {
   onSettings: (patch: Partial<Settings>) => void;
 };
 
-const files: Record<FactCategory, { name: string; file: string; kicker: string; description: string }> = {
-  brands: { name: 'Brands you love', file: 'brands.md', kicker: 'NAMES YOU TRUST', description: 'Brands you come back to. magent leans toward them, but never locks you in.' },
-  sizes: { name: 'Size & fit', file: 'fit.md', kicker: 'HOW THINGS FIT', description: 'Sizes and fit notes. magent never converts or guesses a size for you.' },
-  budget: { name: 'Budget', file: 'budget.md', kicker: 'WHAT FEELS RIGHT TO SPEND', description: 'Usual price ranges. Your current request always comes first.' },
-  style: { name: 'Style & taste', file: 'style.md', kicker: 'WHAT FEELS LIKE YOU', description: 'Colors, silhouettes and looks you gravitate to.' },
-  interests: { name: 'Interests', file: 'interests.md', kicker: 'WHAT YOU LOVE DOING', description: 'Hobbies and passions that shape what you need.' },
-  household: { name: 'Household', file: 'household.md', kicker: 'WHO YOU SHOP FOR', description: 'Pets, kids and the people you often buy for.' },
+const fileNames: Record<FactCategory, string> = {
+  brands: 'brands.md', sizes: 'fit.md', budget: 'budget.md', style: 'style.md', interests: 'interests.md', household: 'household.md',
 };
+// Stored evidence values for facts written in the Memory editor; shown translated.
+const ADDED = 'Added in Memory';
+const EDITED = 'Edited in Memory';
 
 type FileId = 'overview' | 'settings' | FactCategory | `history:${string}`;
 type Editor = { key?: string; category: FactCategory; title: string; text: string };
 
 const day = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const time = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-const when = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'note';
-const userMade = (f: Fact) => f.source === 'chat';
-
-function SourceLine({ fact }: { fact: Fact }) {
-  return (
-    <span className={`source-pill ${fact.source}`}>
-      {fact.source === 'chat'
-        ? <><MessageSquare size={12} aria-hidden /> {fact.evidence.startsWith('Added') || fact.evidence.startsWith('Edited') ? fact.evidence : 'You said this in chat'}</>
-        : <><Mail size={12} aria-hidden /> Inferred from Gmail · {fact.evidence}</>}
-      <span className="source-date">· {when(fact.updatedAt)}</span>
-    </span>
-  );
-}
 
 export function MemoryView(props: Props) {
   const { facts, summary, orders, lastSync, gmailEmail, syncing, conversations, memoryEnabled, learnFromChat } = props;
+  const { t, dateLocale } = useI18n();
   const [file, setFile] = useState<FileId>('overview');
   const [query, setQuery] = useState('');
   const [editor, setEditor] = useState<Editor | null>(null);
 
+  const name = (c: FactCategory) => t(`file.${c}`);
+  const when = (iso: string) => new Date(iso).toLocaleString(dateLocale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const time = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: 'numeric', minute: '2-digit' });
   const days = [...new Set(conversations.map(c => day(c.updatedAt)))].sort().reverse().slice(0, 10);
   const counts = Object.fromEntries(factCategories.map(c => [c, facts.filter(f => f.category === c).length])) as Record<FactCategory, number>;
   const q = query.trim().toLowerCase();
@@ -76,23 +65,32 @@ export function MemoryView(props: Props) {
     if (!editor.key) for (let i = 2; taken.has(key); i++) key = `${slug(editor.title)}-${i}`;
     props.onSaveFact({
       key, category: editor.category, title: editor.title.trim().slice(0, 120), text: editor.text.trim().slice(0, 500),
-      source: 'chat', evidence: editor.key ? 'Edited in Memory' : 'Added in Memory', updatedAt: new Date().toISOString(),
+      source: 'chat', evidence: editor.key ? EDITED : ADDED, updatedAt: new Date().toISOString(),
     }, editor.key);
     setFile(editor.category);
     setEditor(null);
   }
 
+  const source = (f: Fact) => (
+    <span className={`source-pill ${f.source}`}>
+      {f.source === 'chat'
+        ? <><MessageSquare size={12} aria-hidden /> {f.evidence === ADDED ? t('memory.added') : f.evidence === EDITED ? t('memory.edited') : t('memory.youSaid')}</>
+        : <><Mail size={12} aria-hidden /> {t('memory.fromGmail', { evidence: f.evidence })}</>}
+      <span className="source-date">· {when(f.updatedAt)}</span>
+    </span>
+  );
+
   const entry = (f: Fact, showFile = false) => (
     <li key={f.key} className="memory-entry">
       <div>
-        {showFile && <span className="entry-file">{files[f.category].file}</span>}
+        {showFile && <span className="entry-file">{fileNames[f.category]}</span>}
         <strong>{f.title}</strong>
         <p>{f.text}</p>
-        <SourceLine fact={f} />
+        {source(f)}
       </div>
       <div className="entry-actions">
-        <button type="button" className="icon-button" onClick={() => setEditor({ key: f.key, category: f.category, title: f.title, text: f.text })} aria-label={`Edit ${f.title}`}><Pencil size={15} /></button>
-        <button type="button" className="icon-button" onClick={() => props.onDelete(f.key)} aria-label={`Forget ${f.title}`}><Trash2 size={15} /></button>
+        <button type="button" className="icon-button" onClick={() => setEditor({ key: f.key, category: f.category, title: f.title, text: f.text })} aria-label={t('memory.edit', { title: f.title })}><Pencil size={15} /></button>
+        <button type="button" className="icon-button" onClick={() => props.onDelete(f.key)} aria-label={t('memory.forget', { title: f.title })}><Trash2 size={15} /></button>
       </div>
     </li>
   );
@@ -100,58 +98,58 @@ export function MemoryView(props: Props) {
   const crumb = editor ? (editor.key ? 'edit.md' : 'new.md')
     : q ? 'search'
     : file === 'overview' ? 'overview.md' : file === 'settings' ? 'settings'
-    : file.startsWith('history:') ? `${file.slice(8)}.md` : files[file as FactCategory].file;
+    : file.startsWith('history:') ? `${file.slice(8)}.md` : fileNames[file as FactCategory];
 
   let body: React.ReactNode;
   if (editor) {
     body = (
       <form className="memory-editor" onSubmit={save}>
-        <p className="eyebrow">{editor.key ? 'EDIT MEMORY' : 'ADD MEMORY'}</p>
-        <h2>{editor.key ? 'Refine what magent knows' : 'Tell magent something about you'}</h2>
-        <p className="memory-doc-lede">Things you write here count as your own words, so they always win over what magent inferred from Gmail.</p>
-        <label>File
+        <p className="eyebrow">{editor.key ? t('memory.editKicker') : t('memory.addKicker')}</p>
+        <h2>{editor.key ? t('memory.editTitle') : t('memory.addTitle')}</h2>
+        <p className="memory-doc-lede">{t('memory.editorLede')}</p>
+        <label>{t('memory.fieldFile')}
           <select value={editor.category} onChange={e => setEditor({ ...editor, category: e.target.value as FactCategory })}>
-            {factCategories.map(c => <option key={c} value={c}>{files[c].name}</option>)}
+            {factCategories.map(c => <option key={c} value={c}>{name(c)}</option>)}
           </select>
         </label>
-        <label>Title<input value={editor.title} maxLength={120} placeholder="e.g. Shoe size" onChange={e => setEditor({ ...editor, title: e.target.value })} /></label>
-        <label>Detail<textarea value={editor.text} maxLength={500} rows={3} placeholder="e.g. US men's 10.5, wide feet" onChange={e => setEditor({ ...editor, text: e.target.value })} /></label>
+        <label>{t('memory.fieldTitle')}<input value={editor.title} maxLength={120} placeholder={t('memory.titlePlaceholder')} onChange={e => setEditor({ ...editor, title: e.target.value })} /></label>
+        <label>{t('memory.fieldDetail')}<textarea value={editor.text} maxLength={500} rows={3} placeholder={t('memory.detailPlaceholder')} onChange={e => setEditor({ ...editor, text: e.target.value })} /></label>
         <div className="memory-editor-actions">
-          <button type="submit" className="primary-button" disabled={!editor.title.trim() || !editor.text.trim()}><Check size={16} aria-hidden /> Save</button>
-          <button type="button" className="secondary-button" onClick={() => setEditor(null)}><X size={15} aria-hidden /> Cancel</button>
+          <button type="submit" className="primary-button" disabled={!editor.title.trim() || !editor.text.trim()}><Check size={16} aria-hidden /> {t('memory.saveButton')}</button>
+          <button type="button" className="secondary-button" onClick={() => setEditor(null)}><X size={15} aria-hidden /> {t('memory.cancel')}</button>
         </div>
       </form>
     );
   } else if (q) {
     body = (
       <>
-        <p className="eyebrow">SEARCH</p>
-        <h2>Results for “{query.trim()}”</h2>
-        {results.length ? <ul className="memory-entries">{results.map(f => entry(f, true))}</ul> : <p className="memory-doc-lede">Nothing in your memory matches that yet.</p>}
+        <p className="eyebrow">{t('memory.searchKicker')}</p>
+        <h2>{t('memory.results', { query: query.trim() })}</h2>
+        {results.length ? <ul className="memory-entries">{results.map(f => entry(f, true))}</ul> : <p className="memory-doc-lede">{t('memory.noResults')}</p>}
       </>
     );
   } else if (file === 'overview') {
     body = (
       <>
-        <p className="eyebrow">YOUR MEMORY AT A GLANCE</p>
-        <h2>Overview</h2>
-        <p className="memory-doc-lede">{summary ?? 'Everything magent uses to make a find feel like you. Connect Gmail or just chat, and it fills in.'}</p>
+        <p className="eyebrow">{t('memory.overviewKicker')}</p>
+        <h2>{t('memory.overview')}</h2>
+        <p className="memory-doc-lede">{summary ?? t('memory.overviewLede')}</p>
         <div className="memory-stats">
-          <div><strong>{facts.length}</strong><span>things remembered</span></div>
-          <div><strong>{orders}</strong><span>orders analyzed</span></div>
-          <div><strong>{conversations.length}</strong><span>conversations</span></div>
+          <div><strong>{facts.length}</strong><span>{t('memory.statFacts')}</span></div>
+          <div><strong>{orders}</strong><span>{t('memory.statOrders')}</span></div>
+          <div><strong>{conversations.length}</strong><span>{t('memory.statChats')}</span></div>
         </div>
         <div className="memory-connection">
           <span className={`profile-avatar${gmailEmail ? ' connected' : ''}`}><Mail size={16} aria-hidden /></span>
           <div>
-            <strong>{gmailEmail ? `Gmail connected · ${gmailEmail}` : 'Gmail not connected'}</strong>
-            <p>{lastSync ? `Last checked ${when(lastSync)}. magent checks for new orders when you come back.` : 'magent reads only order emails and never stores them.'}</p>
+            <strong>{gmailEmail ? t('memory.gmailConnectedAs', { email: gmailEmail }) : t('memory.gmailNotConnected')}</strong>
+            <p>{lastSync ? t('memory.lastChecked', { date: when(lastSync) }) : t('memory.gmailPrivacy')}</p>
           </div>
-          {gmailEmail && <button type="button" className="secondary-button" onClick={props.onSync} disabled={syncing}><RefreshCw size={15} className={syncing ? 'spin' : ''} aria-hidden /> {syncing ? 'Syncing…' : 'Sync now'}</button>}
+          {gmailEmail && <button type="button" className="secondary-button" onClick={props.onSync} disabled={syncing}><RefreshCw size={15} className={syncing ? 'spin' : ''} aria-hidden /> {syncing ? t('memory.syncing') : t('memory.syncNow')}</button>}
         </div>
         <ul className="memory-file-cards">
           {factCategories.map(c => (
-            <li key={c}><button type="button" onClick={() => open(c)}><FileText size={16} aria-hidden /><span>{files[c].name}</span><small>{counts[c]}</small><ChevronRight size={15} aria-hidden /></button></li>
+            <li key={c}><button type="button" onClick={() => open(c)}><FileText size={16} aria-hidden /><span>{name(c)}</span><small>{counts[c]}</small><ChevronRight size={15} aria-hidden /></button></li>
           ))}
         </ul>
       </>
@@ -159,24 +157,24 @@ export function MemoryView(props: Props) {
   } else if (file === 'settings') {
     body = (
       <>
-        <p className="eyebrow">HOW MEMORY WORKS FOR YOU</p>
-        <h2>Memory settings</h2>
-        <p className="memory-doc-lede">Changes apply to your next message.</p>
+        <p className="eyebrow">{t('memory.settingsKicker')}</p>
+        <h2>{t('memory.settings')}</h2>
+        <p className="memory-doc-lede">{t('memory.settingsLede')}</p>
         <label className="memory-setting">
-          <span><strong>Use memory for recommendations</strong><small>When off, magent shops only from what you say in the current chat.</small></span>
+          <span><strong>{t('memory.useTitle')}</strong><small>{t('memory.useText')}</small></span>
           <input type="checkbox" role="switch" checked={memoryEnabled} onChange={e => props.onSettings({ memoryEnabled: e.target.checked })} />
         </label>
         <label className="memory-setting">
-          <span><strong>Learn from my chats</strong><small>Save lasting details you state, like your size or a brand you avoid.</small></span>
+          <span><strong>{t('memory.learnTitle')}</strong><small>{t('memory.learnText')}</small></span>
           <input type="checkbox" role="switch" checked={learnFromChat} onChange={e => props.onSettings({ learnFromChat: e.target.checked })} />
         </label>
         <div className="memory-setting static">
-          <span><strong>Gmail</strong><small>{gmailEmail ? `Connected as ${gmailEmail}` : 'Not connected'}</small></span>
-          {gmailEmail && <button type="button" className="secondary-button" onClick={props.onDisconnect}>Disconnect</button>}
+          <span><strong>{t('memory.gmail')}</strong><small>{gmailEmail ? t('memory.connectedAs', { email: gmailEmail }) : t('memory.gmailNotConnected')}</small></span>
+          {gmailEmail && <button type="button" className="secondary-button" onClick={props.onDisconnect}>{t('memory.disconnect')}</button>}
         </div>
         <div className="memory-setting static">
-          <span><strong>Clear memory</strong><small>Delete everything magent remembers on this device. Chats stay.</small></span>
-          <button type="button" className="secondary-button danger" onClick={props.onClear} disabled={!facts.length}><Trash2 size={15} aria-hidden /> Clear</button>
+          <span><strong>{t('memory.clearTitle')}</strong><small>{t('memory.clearText')}</small></span>
+          <button type="button" className="secondary-button danger" onClick={props.onClear} disabled={!facts.length}><Trash2 size={15} aria-hidden /> {t('memory.clear')}</button>
         </div>
       </>
     );
@@ -185,33 +183,33 @@ export function MemoryView(props: Props) {
     const items = conversations.filter(c => day(c.updatedAt) === date);
     body = (
       <>
-        <p className="eyebrow">WHAT YOU LOOKED FOR</p>
-        <h2>{new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h2>
-        <p className="memory-doc-lede">History is activity, not taste. magent doesn&apos;t assume a one-time search is what you like.</p>
+        <p className="eyebrow">{t('memory.historyKicker')}</p>
+        <h2>{new Date(`${date}T12:00:00`).toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', year: 'numeric' })}</h2>
+        <p className="memory-doc-lede">{t('memory.historyLede')}</p>
         <ul className="memory-entries">
           {items.map(c => (
             <li key={c.id} className="memory-entry">
               <div><strong>{c.title}</strong><span className="source-pill"><History size={12} aria-hidden /> {time(c.updatedAt)}</span></div>
-              <button type="button" className="secondary-button" onClick={() => props.onOpenConversation(c.id)}>Open <ArrowUpRight size={14} aria-hidden /></button>
+              <button type="button" className="secondary-button" onClick={() => props.onOpenConversation(c.id)}>{t('memory.open')} <ArrowUpRight size={14} aria-hidden /></button>
             </li>
           ))}
         </ul>
       </>
     );
   } else {
-    const meta = files[file as FactCategory];
-    const items = facts.filter(f => f.category === file);
+    const category = file as FactCategory;
+    const items = facts.filter(f => f.category === category);
     body = (
       <>
-        <p className="eyebrow">{meta.kicker}</p>
-        <h2>{meta.name}</h2>
-        <p className="memory-doc-lede">{meta.description}</p>
+        <p className="eyebrow">{t(`file.${category}Kicker`)}</p>
+        <h2>{name(category)}</h2>
+        <p className="memory-doc-lede">{t(`file.${category}Text`)}</p>
         {items.length ? <ul className="memory-entries">{items.map(f => entry(f))}</ul> : (
           <div className="memory-empty">
             <span><Sparkles size={24} strokeWidth={1.4} aria-hidden /></span>
-            <h3>Good recommendations start with you.</h3>
-            <p>Share your usual size, a style you love, or what you tend to avoid. magent keeps the useful details as you chat.</p>
-            <button type="button" className="secondary-button" onClick={props.onNewChat}>Start a conversation <ArrowUpRight size={14} aria-hidden /></button>
+            <h3>{t('memory.emptyTitle')}</h3>
+            <p>{t('memory.emptyText')}</p>
+            <button type="button" className="secondary-button" onClick={props.onNewChat}>{t('memory.startChat')} <ArrowUpRight size={14} aria-hidden /></button>
           </div>
         )}
       </>
@@ -222,31 +220,31 @@ export function MemoryView(props: Props) {
     <>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">YOUR PERSONAL CONTEXT</p>
-          <h1>Memory<span>.</span></h1>
-          <p>The little things that make a find feel like you.</p>
+          <p className="eyebrow">{t('memory.kicker')}</p>
+          <h1>{t('memory.title')}<span>.</span></h1>
+          <p>{t('memory.lede')}</p>
         </div>
-        <button type="button" className="primary-button" onClick={startAdd}><Plus size={16} aria-hidden /> Add memory</button>
+        <button type="button" className="primary-button" onClick={startAdd}><Plus size={16} aria-hidden /> {t('memory.add')}</button>
       </div>
 
       <div className="memory-workspace">
         <aside className="memory-files">
           <label className="memory-search">
             <Search size={16} aria-hidden />
-            <input value={query} onChange={e => { setQuery(e.target.value); setEditor(null); }} placeholder="Search memory…" aria-label="Search memory" />
+            <input value={query} onChange={e => { setQuery(e.target.value); setEditor(null); }} placeholder={t('memory.search')} aria-label={t('memory.search')} />
           </label>
           <div className="memory-file-group">
-            <span><Folder size={14} aria-hidden /> YOUR MEMORY</span>
-            <button type="button" className={file === 'overview' && !q ? 'active' : ''} onClick={() => open('overview')}><Brain size={16} aria-hidden /><span>Overview</span></button>
+            <span><Folder size={14} aria-hidden /> {t('memory.yourMemory')}</span>
+            <button type="button" className={file === 'overview' && !q ? 'active' : ''} onClick={() => open('overview')}><Brain size={16} aria-hidden /><span>{t('memory.overview')}</span></button>
             {factCategories.map(c => (
               <button type="button" key={c} className={file === c && !q ? 'active' : ''} onClick={() => open(c)}>
-                <FileText size={16} aria-hidden /><span>{files[c].name}</span><small>{counts[c]}</small>
+                <FileText size={16} aria-hidden /><span>{name(c)}</span><small>{counts[c]}</small>
               </button>
             ))}
           </div>
           {days.length > 0 && (
             <div className="memory-file-group">
-              <span><History size={14} aria-hidden /> HISTORY</span>
+              <span><History size={14} aria-hidden /> {t('memory.history')}</span>
               {days.map(d => (
                 <button type="button" key={d} className={file === `history:${d}` && !q ? 'active' : ''} onClick={() => open(`history:${d}`)}>
                   <FileText size={16} aria-hidden /><span>{d}.md</span>
@@ -255,19 +253,19 @@ export function MemoryView(props: Props) {
             </div>
           )}
           <button type="button" className={`memory-settings-link${file === 'settings' && !q ? ' active' : ''}`} onClick={() => open('settings')}>
-            <SlidersHorizontal size={16} aria-hidden /><span>Memory settings</span><ChevronRight size={15} aria-hidden />
+            <SlidersHorizontal size={16} aria-hidden /><span>{t('memory.settings')}</span><ChevronRight size={15} aria-hidden />
           </button>
-          <p className="memory-local"><Lock size={13} aria-hidden /> Saved in this browser</p>
+          <p className="memory-local"><Lock size={13} aria-hidden /> {t('memory.local')}</p>
         </aside>
 
         <section className="memory-document" aria-live="polite">
           <div className="memory-document-bar">
             <span><Folder size={15} aria-hidden /> memory <ChevronRight size={13} aria-hidden /> <b>{crumb}</b></span>
-            <span className={`memory-status${memoryEnabled ? '' : ' off'}`}><i /> {memoryEnabled ? 'Memory on' : 'Memory off'}</span>
+            <span className={`memory-status${memoryEnabled ? '' : ' off'}`}><i /> {memoryEnabled ? t('memory.on') : t('memory.off')}</span>
           </div>
           <div className="memory-document-body">
             {body}
-            <p className="memory-footnote"><Check size={14} aria-hidden /> Saved from what you explicitly share, write here, or buy (via Gmail). A one-time search stays in history; it isn&apos;t assumed to be your taste.</p>
+            <p className="memory-footnote"><Check size={14} aria-hidden /> {t('memory.footnote')}</p>
           </div>
         </section>
       </div>

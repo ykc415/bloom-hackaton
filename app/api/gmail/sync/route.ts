@@ -13,16 +13,16 @@ export async function POST(request: Request) {
   if (!input.success) return Response.json({ error: 'Invalid request.' }, { status: 400 });
   const session = unseal((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return Response.json({ error: 'Gmail is not connected.' }, { status: 401 });
-  const { after, facts } = input.data;
+  const { after, facts, locale } = input.data;
 
   return ndjson<SyncEvent>(request, async (emit, signal) => {
     const syncedAt = new Date().toISOString();
-    emit({ type: 'status', message: 'Connecting to Gmail…' });
+    emit({ type: 'status', code: 'connecting' });
     let token: string;
     try { token = await accessToken(session.rt); }
     catch (error) { if (error instanceof GmailAuthError) return emit({ type: 'reconnect' }); throw error; }
 
-    emit({ type: 'status', message: after ? 'Checking for new orders…' : 'Looking for order emails from the last 12 months…' });
+    emit({ type: 'status', code: after ? 'checking' : 'looking' });
     const ids = await purchaseMessageIds(token, after ? new Date(after) : null, signal);
     if (!ids.length) return emit({ type: 'profile', summary: null, facts: null, orders: 0, syncedAt });
 
@@ -31,15 +31,15 @@ export async function POST(request: Request) {
     for (const e of emails) { const name = senderName(e.from); counts.set(name, (counts.get(name) ?? 0) + 1); }
     emit({ type: 'merchants', merchants: [...counts].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([name]) => name), emails: emails.length });
 
-    emit({ type: 'status', message: `Reading your ${emails.length} order emails…` });
+    emit({ type: 'status', code: 'reading', count: emails.length });
     const failures: unknown[] = [];
     const purchases = (await mapLimit(emails, 8, e => extractPurchase(e).catch(error => { failures.push(error); return null; })))
       .filter((p): p is Purchase => !!p);
     if (!purchases.length && failures.length === emails.length) throw failures[0];
     if (!purchases.length) return emit({ type: 'profile', summary: null, facts: null, orders: 0, syncedAt });
 
-    emit({ type: 'status', message: `Building your taste profile from ${purchases.length} orders…` });
-    const profile = await synthesizeProfile(purchases, facts);
+    emit({ type: 'status', code: 'building', count: purchases.length });
+    const profile = await synthesizeProfile(purchases, facts, locale);
     const userKeys = new Set(facts.filter(f => f.source === 'chat').map(f => f.key));
     const gmailFacts: Fact[] = profile.facts
       .filter(f => !userKeys.has(f.key))

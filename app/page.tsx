@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Search, Sparkles, Square, UserRound } from 'lucide-react';
 import { HomeView } from '@/components/home-view';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { Landing } from '@/components/landing';
 import { MemoryView } from '@/components/memory-view';
 import { ProductCard } from '@/components/product-card';
 import { ProductDialog } from '@/components/product-dialog';
 import { Sidebar } from '@/components/sidebar';
+import { I18nProvider, useI18n } from '@/lib/i18n';
 import { money, type ChatEvent, type Fact, type PriceInsight, type Product, type Saved, type SyncEvent } from '@/lib/types';
 
 type View = 'home' | 'chat' | 'memory' | 'saved';
@@ -25,7 +27,6 @@ type Sync = { status: string; merchants: string[]; emails: number };
 
 const STORAGE_KEY = 'magent.v2';
 const EMPTY: Stored = { facts: [], conversations: [], summary: null, orders: 0, lastSync: null, saved: [], memoryEnabled: true, learnFromChat: true };
-const PICKS_PROMPT = 'Based on my profile, pick a few things I would love right now.';
 
 async function readEvents<E>(response: Response, onEvent: (event: E) => void) {
   if (!response.ok || !response.body) {
@@ -72,6 +73,11 @@ function RichText({ text }: { text: string }) {
 }
 
 export default function Home() {
+  return <I18nProvider><App /></I18nProvider>;
+}
+
+function App() {
+  const { t, tc, locale, dateLocale } = useI18n();
   const [data, setData] = useState<Stored>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
   const [gmail, setGmail] = useState<Gmail | null>(null);
@@ -112,8 +118,8 @@ export default function Home() {
     setHydrated(true);
     const param = new URLSearchParams(location.search).get('gmail');
     if (param) history.replaceState(null, '', location.pathname);
-    if (param === 'denied') setToast('Gmail access was not granted.');
-    if (param === 'error' || param === 'unavailable') setToast('Could not connect Gmail. Please try again.');
+    if (param === 'denied') setToast(t('toast.gmailDenied'));
+    if (param === 'error' || param === 'unavailable') setToast(t('toast.gmailError'));
     fetch('/api/gmail/status').then(r => r.json()).then((s: Gmail) => {
       setGmail(s);
       if (!s.connected) return;
@@ -142,18 +148,18 @@ export default function Home() {
   async function runSync(after: string | null, initial: boolean) {
     if (syncingRef.current) return;
     syncingRef.current = true;
-    setSync({ status: 'Connecting to Gmail…', merchants: [], emails: 0 });
+    setSync({ status: t('sync.connecting'), merchants: [], emails: 0 });
     if (initial) { setReady(null); window.setTimeout(() => document.getElementById('personal')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150); }
     try {
       const response = await fetch('/api/gmail/sync', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ after, facts: dataRef.current.facts }),
+        body: JSON.stringify({ after, facts: dataRef.current.facts, locale }),
       });
       if (response.status === 401) { setGmail({ connected: false }); return; }
       await readEvents<SyncEvent>(response, event => {
-        if (event.type === 'status') setSync(s => s && { ...s, status: event.message });
+        if (event.type === 'status') setSync(s => s && { ...s, status: 'count' in event ? t(`sync.${event.code}`, { count: event.count }) : t(`sync.${event.code}`) });
         else if (event.type === 'merchants') setSync(s => s && { ...s, merchants: event.merchants, emails: event.emails });
-        else if (event.type === 'reconnect') { setGmail({ connected: false }); setToast('Your Gmail connection expired. Please connect again.'); }
+        else if (event.type === 'reconnect') { setGmail({ connected: false }); setToast(t('toast.gmailExpired')); }
         else if (event.type === 'error') setToast(event.message);
         else if (event.type === 'profile') {
           const { facts, summary, orders, syncedAt } = event;
@@ -161,13 +167,13 @@ export default function Home() {
             ? { ...d, lastSync: syncedAt, facts: mergeGmailFacts(d.facts, facts), summary: summary ?? d.summary, orders: after ? d.orders + orders : orders }
             : { ...d, lastSync: syncedAt });
           // First sync: announce that picks are now personalized instead of jumping into recommendations.
-          if (initial && facts?.length) { setReady({ orders }); setToast('Your taste profile is ready. Every pick is now personalized.'); }
-          else if (initial) setToast('No order emails found in the last 12 months.');
-          else setToast(orders ? `Added ${orders} new order${orders > 1 ? 's' : ''} from Gmail to your memory` : 'Gmail checked · no new orders');
+          if (initial && facts?.length) { setReady({ orders }); setToast(t('toast.profileReady')); }
+          else if (initial) setToast(t('toast.noOrders'));
+          else setToast(orders ? tc('toast.newOrders', orders) : t('toast.noNewOrders'));
         }
       });
     } catch (error) {
-      setToast(error instanceof Error ? error.message : 'Sync failed. Please try again.');
+      setToast(error instanceof Error ? error.message : t('toast.syncFailed'));
     } finally {
       syncingRef.current = false;
       setSync(null);
@@ -188,7 +194,7 @@ export default function Home() {
     const recentProducts = history.flatMap(m => m.products ?? []).slice(-12);
 
     update(d => {
-      const base = d.conversations.find(c => c.id === chatId) ?? { id: chatId, title: options.auto ? `Your picks · ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : text.slice(0, 60), updatedAt: now, messages: [] };
+      const base = d.conversations.find(c => c.id === chatId) ?? { id: chatId, title: options.auto ? t('chat.picksTitle', { date: new Date().toLocaleString(dateLocale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }) : text.slice(0, 60), updatedAt: now, messages: [] };
       const chat = { ...base, updatedAt: now, messages: [...base.messages, user, assistant] };
       return { ...d, conversations: [chat, ...d.conversations.filter(c => c.id !== chatId)].slice(0, 30) };
     });
@@ -201,25 +207,25 @@ export default function Home() {
     abortRef.current = controller;
     setDraft('');
     setBusy(true);
-    setStatus('Thinking…');
+    setStatus(t('status.thinking'));
     window.setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
     try {
       const response = await fetch('/api/chat', {
         method: 'POST', headers: { 'content-type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ messages: history.map(m => ({ role: m.role, text: apiText(m) })), facts, recentProducts, capture: dataRef.current.learnFromChat }),
+        body: JSON.stringify({ messages: history.map(m => ({ role: m.role, text: apiText(m) })), facts, recentProducts, capture: dataRef.current.learnFromChat, locale }),
       });
       await readEvents<ChatEvent>(response, event => {
         if (event.type === 'text') patch(m => ({ ...m, text: m.text + event.delta }));
         else if (event.type === 'products') patch(m => ({ ...m, products: [...(m.products ?? []), ...event.products], suggestions: event.suggestions }));
-        else if (event.type === 'status') setStatus(event.message);
+        else if (event.type === 'status') setStatus(event.code === 'searching' ? t('status.searching', { query: event.query }) : t('status.thinking'));
         else if (event.type === 'fact') {
           update(d => ({ ...d, facts: [event.fact, ...d.facts.filter(f => f.key !== event.fact.key)] }));
           patch(m => ({ ...m, memoryAdded: (m.memoryAdded ?? 0) + 1 }));
         } else if (event.type === 'error') patch(m => ({ ...m, text: m.text ? `${m.text}\n\n${event.message}` : event.message, error: !m.text && !m.products }));
       });
     } catch (error) {
-      if (controller.signal.aborted) patch(m => ({ ...m, text: m.text || 'Stopped. You can refine your request and try again.' }));
-      else patch(m => ({ ...m, text: m.text || (error instanceof Error ? error.message : 'Something went wrong.'), error: true }));
+      if (controller.signal.aborted) patch(m => ({ ...m, text: m.text || t('chat.stopped') }));
+      else patch(m => ({ ...m, text: m.text || (error instanceof Error ? error.message : t('chat.error')), error: true }));
     } finally {
       abortRef.current = null;
       setBusy(false);
@@ -240,12 +246,12 @@ export default function Home() {
   function toggleSave(product: Product, insight: PriceInsight | null) {
     if (dataRef.current.saved.some(s => s.product.id === product.id)) {
       update(d => ({ ...d, saved: d.saved.filter(s => s.product.id !== product.id) }));
-      setToast('Removed from saved');
+      setToast(t('toast.unsaved'));
       return;
     }
     const price = insight?.current ?? product.offers[0].price; // compare like with like on the next check
     update(d => ({ ...d, saved: [{ product, price, current: price, savedAt: new Date().toISOString() }, ...d.saved].slice(0, 50) }));
-    setToast('Saved. magent will tell you when the price drops.');
+    setToast(t('toast.saved'));
   }
 
   async function checkSaved() {
@@ -258,14 +264,14 @@ export default function Home() {
     const drops = list.filter(s => (prices.get(s.product.id) ?? s.price) < s.price - 0.5);
     if (drops.length) {
       const s = drops[0];
-      setToast(`Price drop: ${s.product.title.slice(0, 40)} is now ${money(prices.get(s.product.id)!)} (was ${money(s.price)})${drops.length > 1 ? ` · +${drops.length - 1} more` : ''}`);
+      setToast(t('toast.priceDrop', { title: s.product.title.slice(0, 40), price: money(prices.get(s.product.id)!), old: money(s.price) }) + (drops.length > 1 ? t('toast.priceDropMore', { count: drops.length - 1 }) : ''));
     }
   }
 
   // Log out = revoke Gmail at Google, drop the cookie, and wipe everything stored on this device.
   async function logout() {
     setMenuOpen(false);
-    if (!window.confirm('Log out of magent? This disconnects Gmail and deletes your memory, chats and saved finds on this device.')) return;
+    if (!window.confirm(t('confirm.logout'))) return;
     stop();
     await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable */ }
@@ -273,13 +279,13 @@ export default function Home() {
     setGmail({ connected: false });
     activate(null, 'home');
     window.scrollTo({ top: 0 });
-    setToast('Logged out. Gmail access was revoked and your data on this device was deleted.');
+    setToast(t('toast.loggedOut'));
   }
 
   async function disconnect() {
     await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
     setGmail({ connected: false });
-    setToast('Gmail disconnected. Access was revoked at Google.');
+    setToast(t('toast.disconnected'));
   }
 
   const connect = () => { location.href = '/api/gmail/connect'; };
@@ -292,7 +298,7 @@ export default function Home() {
   const composer = (home: boolean) => (
     <form className={`composer ${home ? 'home-composer' : 'chat-composer'}`} onSubmit={submit}>
       {home && <Search size={22} className="composer-search-icon" aria-hidden />}
-      <label htmlFor="prompt" className="sr-only">What are you shopping for?</label>
+      <label htmlFor="prompt" className="sr-only">{t('composer.label')}</label>
       <textarea
         ref={inputRef}
         id="prompt"
@@ -301,16 +307,16 @@ export default function Home() {
         maxLength={4000}
         onChange={e => setDraft(e.target.value)}
         onKeyDown={onKeyDown}
-        placeholder={home ? 'Tell me what you’re shopping for…' : 'Refine your search, or ask about these picks…'}
+        placeholder={home ? t('composer.homePlaceholder') : t('composer.chatPlaceholder')}
         disabled={!hydrated}
       />
       {busy
-        ? <button className="send-button stop-button" type="button" onClick={stop} aria-label="Stop response"><Square size={16} fill="currentColor" /></button>
-        : <button className="send-button" type="submit" disabled={!draft.trim() || !hydrated} aria-label="Send">{home && <span>Find it</span>}{home ? <ArrowRight size={18} /> : <ArrowUp size={19} />}</button>}
+        ? <button className="send-button stop-button" type="button" onClick={stop} aria-label={t('composer.stop')}><Square size={16} fill="currentColor" /></button>
+        : <button className="send-button" type="submit" disabled={!draft.trim() || !hydrated} aria-label={t('composer.send')}>{home && <span>{t('composer.find')}</span>}{home ? <ArrowRight size={18} /> : <ArrowUp size={19} />}</button>}
     </form>
   );
 
-  const breadcrumb = view === 'memory' ? 'Your memory' : view === 'saved' ? 'Saved finds' : view === 'chat' && active ? active.title : '';
+  const breadcrumb = view === 'memory' ? t('nav.yourMemory') : view === 'saved' ? t('nav.savedFinds') : view === 'chat' && active ? active.title : '';
 
   // Logged out (no Gmail connection): show the service introduction instead of the app.
   if (!gmail) return <div className="boot" aria-busy="true"><img src="/brand/magent-symbol.webp" alt="magent" /></div>;
@@ -344,32 +350,33 @@ export default function Home() {
       <div className="studio-content">
         <header className="topbar">
           <div className="topbar-left">
-            <button type="button" className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={21} /></button>
-            <button type="button" className="header-home" onClick={newChat} aria-label="magent home">
+            <button type="button" className="icon-button mobile-menu" aria-label={t('nav.openNav')} onClick={() => setMobileOpen(true)}><Menu size={21} /></button>
+            <button type="button" className="header-home" onClick={newChat} aria-label={t('common.home')}>
               <img src="/brand/magent-symbol.webp" alt="" className="header-symbol" />
               <img src="/brand/magent-wordmark.webp" alt="magent" className="header-wordmark" />
             </button>
             {breadcrumb && <><span className="breadcrumb-slash">/</span><span className="breadcrumb-label">{breadcrumb}</span></>}
           </div>
           <div className="topbar-right">
-            <span className="region"><Globe2 size={14} aria-hidden />US · USD</span>
+            <span className="region"><Globe2 size={14} aria-hidden />{t('common.region')}</span>
+            <LanguageSwitcher />
             <button type="button" className={`saved-button${view === 'saved' ? ' active' : ''}`} onClick={() => openView('saved')}>
-              <Bookmark size={16} aria-hidden /><span className="saved-label">Saved finds</span>{data.saved.length > 0 && <span className="saved-count">{data.saved.length}</span>}
+              <Bookmark size={16} aria-hidden /><span className="saved-label">{t('nav.savedFinds')}</span>{data.saved.length > 0 && <span className="saved-count">{data.saved.length}</span>}
             </button>
             <div className="account-menu-wrap">
-              <button type="button" className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-label="Account menu" aria-haspopup="menu" aria-expanded={menuOpen}><UserRound size={18} /></button>
+              <button type="button" className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-label={t('nav.accountMenu')} aria-haspopup="menu" aria-expanded={menuOpen}><UserRound size={18} /></button>
               {menuOpen && (
                 <>
-                  <button type="button" className="menu-scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
+                  <button type="button" className="menu-scrim" aria-label={t('common.close')} onClick={() => setMenuOpen(false)} />
                   <div className="account-menu" role="menu" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
                     <div className="account-menu-head">
-                      <strong>{gmailEmail ?? 'Not connected'}</strong>
-                      <small>{gmailEmail ? 'Gmail connected' : 'Your data stays on this device'}</small>
+                      <strong>{gmailEmail ?? t('account.notConnected')}</strong>
+                      <small>{gmailEmail ? t('nav.gmailConnected') : t('account.local')}</small>
                     </div>
-                    <button type="button" role="menuitem" onClick={() => openView('memory')}><Brain size={16} aria-hidden /> Your memory</button>
-                    <button type="button" role="menuitem" onClick={() => openView('saved')}><Bookmark size={16} aria-hidden /> Saved finds</button>
-                    {!gmailEmail && <button type="button" role="menuitem" onClick={connect}><Sparkles size={16} aria-hidden /> Connect Gmail</button>}
-                    <button type="button" role="menuitem" className="danger" onClick={() => void logout()}><LogOut size={16} aria-hidden /> Log out</button>
+                    <button type="button" role="menuitem" onClick={() => openView('memory')}><Brain size={16} aria-hidden /> {t('nav.yourMemory')}</button>
+                    <button type="button" role="menuitem" onClick={() => openView('saved')}><Bookmark size={16} aria-hidden /> {t('nav.savedFinds')}</button>
+                    {!gmailEmail && <button type="button" role="menuitem" onClick={connect}><Sparkles size={16} aria-hidden /> {t('common.connectGmail')}</button>}
+                    <button type="button" role="menuitem" className="danger" onClick={() => void logout()}><LogOut size={16} aria-hidden /> {t('account.logout')}</button>
                   </div>
                 </>
               )}
@@ -391,7 +398,7 @@ export default function Home() {
               orders={data.orders}
               onConnect={connect}
               ready={ready}
-              onPicks={() => void send(PICKS_PROMPT, { auto: true, fresh: true })}
+              onPicks={() => void send(t('chat.picksPrompt'), { auto: true, fresh: true })}
               onSync={() => void runSync(data.lastSync, false)}
               onMemory={() => openView('memory')}
             />
@@ -401,16 +408,16 @@ export default function Home() {
             <div className="conversation-content">
               {messages.map((m, index) => m.role === 'user'
                 ? (m.auto
-                  ? <div key={m.id} className="auto-request"><Sparkles size={14} aria-hidden /> Personalized picks from your memory</div>
-                  : <div key={m.id} className="user-message"><span>You</span><div>{m.text}</div></div>)
+                  ? <div key={m.id} className="auto-request"><Sparkles size={14} aria-hidden /> {t('chat.autoRequest')}</div>
+                  : <div key={m.id} className="user-message"><span>{t('chat.you')}</span><div>{m.text}</div></div>)
                 : (
-                  <section key={m.id} className="assistant-message" aria-label="magent response">
+                  <section key={m.id} className="assistant-message" aria-label={t('chat.response')}>
                     <div className="assistant-heading">
                       <span className="assistant-avatar"><img src="/brand/magent-symbol.webp" alt="" /></span>
                       <strong>magent</strong>
                       {(!!m.memoryUsed || !!m.memoryAdded) && (
                         <button type="button" className="memory-context-chip" onClick={() => openView('memory')}>
-                          <Brain size={13} aria-hidden />{m.memoryAdded ? 'Memory updated' : `Personalized with ${m.memoryUsed} ${m.memoryUsed === 1 ? 'memory' : 'memories'}`}
+                          <Brain size={13} aria-hidden />{m.memoryAdded ? t('chat.memoryUpdated') : tc('chat.memoryUsed', m.memoryUsed ?? 0)}
                         </button>
                       )}
                     </div>
@@ -420,7 +427,7 @@ export default function Home() {
                         <div className={`product-grid${m.products.length === 2 ? ' two-products' : ''}`}>
                           {m.products.map(p => <ProductCard key={p.id} product={p} saved={data.saved.some(s => s.product.id === p.id)} onSave={toggleSave} onDetail={setDetail} />)}
                         </div>
-                        <p className="recommendation-note">Prices and availability can change. Confirm size and final price at the retailer.</p>
+                        <p className="recommendation-note">{t('chat.note')}</p>
                       </>
                     )}
                     {busy && index === messages.length - 1 && (
@@ -428,7 +435,7 @@ export default function Home() {
                     )}
                     {!(busy && index === messages.length - 1) && !m.error && !!m.suggestions?.length && (
                       <div className="followups">
-                        <p>Where should we go from here?</p>
+                        <p>{t('chat.followups')}</p>
                         <div>{m.suggestions.map(s => <button type="button" key={s} disabled={busy} onClick={() => void send(s)}>{s}<ArrowUpRight size={14} aria-hidden /></button>)}</div>
                       </div>
                     )}
@@ -451,7 +458,7 @@ export default function Home() {
               learnFromChat={data.learnFromChat}
               onSaveFact={(fact, previousKey) => update(d => ({ ...d, facts: [fact, ...d.facts.filter(f => f.key !== fact.key && f.key !== previousKey)] }))}
               onDelete={key => update(d => ({ ...d, facts: d.facts.filter(f => f.key !== key) }))}
-              onClear={() => { if (window.confirm('Delete everything magent remembers on this device?')) update(d => ({ ...d, facts: [], summary: null, orders: 0, lastSync: null })); }}
+              onClear={() => { if (window.confirm(t('confirm.clearMemory'))) update(d => ({ ...d, facts: [], summary: null, orders: 0, lastSync: null })); }}
               onSync={() => void runSync(data.lastSync, false)}
               onDisconnect={() => void disconnect()}
               onOpenConversation={id => { activate(id, 'chat'); window.scrollTo({ top: 0 }); }}
@@ -464,9 +471,9 @@ export default function Home() {
             <>
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">THE ONES WORTH KEEPING</p>
-                  <h1>Your saved finds<span>.</span></h1>
-                  <p>A shortlist with your name on it. magent checks prices each time you come back.</p>
+                  <p className="eyebrow">{t('saved.kicker')}</p>
+                  <h1>{t('saved.title')}<span>.</span></h1>
+                  <p>{t('saved.lede')}</p>
                 </div>
               </div>
               {data.saved.length ? (
@@ -478,9 +485,9 @@ export default function Home() {
               ) : (
                 <div className="empty-state">
                   <Bookmark size={28} strokeWidth={1.3} aria-hidden />
-                  <h2>Nothing saved yet.</h2>
-                  <p>Tap the bookmark on any pick to save it. magent will tell you when the price drops.</p>
-                  <button type="button" className="primary-button" onClick={newChat}>Start looking <ArrowRight size={16} aria-hidden /></button>
+                  <h2>{t('saved.emptyTitle')}</h2>
+                  <p>{t('saved.emptyText')}</p>
+                  <button type="button" className="primary-button" onClick={newChat}>{t('saved.start')} <ArrowRight size={16} aria-hidden /></button>
                 </div>
               )}
             </>
