@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, Menu, Search, Sparkles, Square, UserRound } from 'lucide-react';
+import { ArrowRight, ArrowUp, ArrowUpRight, Bookmark, Brain, Check, Globe2, LogOut, Menu, Search, Sparkles, Square, UserRound } from 'lucide-react';
 import { HomeView } from '@/components/home-view';
 import { MemoryView } from '@/components/memory-view';
 import { ProductCard } from '@/components/product-card';
@@ -77,6 +77,7 @@ export default function Home() {
   const [view, setView] = useState<View>('home');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
   const dataRef = useRef(EMPTY);
   const activeRef = useRef<string | null>(null);
@@ -226,7 +227,7 @@ export default function Home() {
     window.scrollTo({ top: 0 });
     window.setTimeout(() => inputRef.current?.focus(), 50);
   }
-  function openView(next: 'memory' | 'saved') { activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
+  function openView(next: 'memory' | 'saved') { setMenuOpen(false); activate(activeRef.current, next); window.scrollTo({ top: 0 }); }
 
   function toggleSave(product: Product, insight: PriceInsight | null) {
     if (dataRef.current.saved.some(s => s.product.id === product.id)) {
@@ -251,6 +252,20 @@ export default function Home() {
       const s = drops[0];
       setToast(`Price drop: ${s.product.title.slice(0, 40)} is now ${money(prices.get(s.product.id)!)} (was ${money(s.price)})${drops.length > 1 ? ` · +${drops.length - 1} more` : ''}`);
     }
+  }
+
+  // Log out = revoke Gmail at Google, drop the cookie, and wipe everything stored on this device.
+  async function logout() {
+    setMenuOpen(false);
+    if (!window.confirm('Log out of magent? This disconnects Gmail and deletes your memory, chats and saved finds on this device.')) return;
+    stop();
+    await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage unavailable */ }
+    update(() => EMPTY);
+    setGmail({ connected: false });
+    activate(null, 'home');
+    window.scrollTo({ top: 0 });
+    setToast('Logged out. Gmail access was revoked and your data on this device was deleted.');
   }
 
   async function disconnect() {
@@ -321,9 +336,26 @@ export default function Home() {
           <div className="topbar-right">
             <span className="region"><Globe2 size={14} aria-hidden />US · USD</span>
             <button type="button" className={`saved-button${view === 'saved' ? ' active' : ''}`} onClick={() => openView('saved')}>
-              <Bookmark size={16} aria-hidden />Saved finds{data.saved.length > 0 && <span className="saved-count">{data.saved.length}</span>}
+              <Bookmark size={16} aria-hidden /><span className="saved-label">Saved finds</span>{data.saved.length > 0 && <span className="saved-count">{data.saved.length}</span>}
             </button>
-            <button type="button" className="avatar-button" onClick={() => openView('memory')} aria-label="Your memory"><UserRound size={18} /></button>
+            <div className="account-menu-wrap">
+              <button type="button" className="avatar-button" onClick={() => setMenuOpen(o => !o)} aria-label="Account menu" aria-haspopup="menu" aria-expanded={menuOpen}><UserRound size={18} /></button>
+              {menuOpen && (
+                <>
+                  <button type="button" className="menu-scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
+                  <div className="account-menu" role="menu" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
+                    <div className="account-menu-head">
+                      <strong>{gmailEmail ?? 'Not connected'}</strong>
+                      <small>{gmailEmail ? 'Gmail connected' : 'Your data stays on this device'}</small>
+                    </div>
+                    <button type="button" role="menuitem" onClick={() => openView('memory')}><Brain size={16} aria-hidden /> Your memory</button>
+                    <button type="button" role="menuitem" onClick={() => openView('saved')}><Bookmark size={16} aria-hidden /> Saved finds</button>
+                    {!gmailEmail && <button type="button" role="menuitem" onClick={connect}><Sparkles size={16} aria-hidden /> Connect Gmail</button>}
+                    <button type="button" role="menuitem" className="danger" onClick={() => void logout()}><LogOut size={16} aria-hidden /> Log out</button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 

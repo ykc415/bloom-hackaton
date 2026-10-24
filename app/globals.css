@@ -98,6 +98,16 @@ img { display: block; max-width: 100%; }
 .saved-button { display: flex; align-items: center; gap: 8px; background: #f5f5f7; padding: 8px 12px; border: 1px solid #f0f0f3; border-radius: 8px; font-size: 11px; font-weight: 500; white-space: nowrap; }
 .saved-button:hover, .saved-button.active { background: #eeeef2; }
 .saved-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--orange); color: #fff; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.account-menu-wrap { position: relative; }
+.menu-scrim { position: fixed; inset: 0; z-index: 35; cursor: default; }
+.account-menu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: 250px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 36px #17171914; padding: 6px; animation: rise 0.15s ease both; }
+.account-menu-head { padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid #f0f0f3; }
+.account-menu-head strong { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu-head small { font-size: 10px; color: var(--muted); }
+.account-menu > button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 8px; font-size: 12px; color: #4d5159; text-align: left; }
+.account-menu > button:hover { background: #f3f3f6; color: var(--ink); }
+.account-menu > button.danger { color: #c2410c; }
+.account-menu > button.danger:hover { background: #fff3ee; }
 .avatar-button { width: 31px; height: 31px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
 
 /* Home */
@@ -322,7 +332,7 @@ img { display: block; max-width: 100%; }
 }
 @media (max-width: 520px) {
   .topbar { padding: 0 16px; }
-  .breadcrumb-slash, .breadcrumb-label, .avatar-button { display: none; }
+  .breadcrumb-slash, .breadcrumb-label, .saved-label { display: none; }
   .home-main, .page-main { padding-left: 18px; padding-right: 18px; }
   .chat-main { padding: 24px 16px 150px; }
   .composer-dock { padding: 20px 12px 12px; }
