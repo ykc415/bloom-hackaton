@@ -47,7 +47,7 @@ img { display: block; max-width: 100%; }
 .sidebar-scrim { display: none; }
 .brand-lockup { height: var(--header); padding: 0 24px; display: flex; align-items: center; gap: 12px; text-align: left; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .brand-symbol { width: 36px; height: auto; }
-.brand-wordmark { width: 104px; height: auto; }
+.brand-wordmark { width: 86px; height: auto; }
 .brand-lockup small { display: block; margin-top: 4px; font: 500 8px var(--display); letter-spacing: 0.13em; color: var(--muted); }
 .sidebar-main { display: flex; flex-direction: column; padding: 22px 15px; flex: 1; min-height: 0; overflow-y: auto; }
 .new-chat-button { display: flex; align-items: center; justify-content: center; gap: 9px; background: var(--ink); color: #fff; border-radius: 9px; min-height: 42px; font-size: 11px; font-weight: 600; }
