@@ -1,5 +1,5 @@
 import { AppError } from './server';
-import type { Offer, Product } from './types';
+import type { Offer, PriceInsight, Product } from './types';
 
 const record = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
@@ -52,4 +52,20 @@ export async function searchProducts(query: string, price: { min?: number; max?:
     throw new AppError(res.status === 429 ? 'Product search is busy. Please try again in a moment.' : 'Could not reach the product catalog.');
   }
   return list(record(await res.json()).products).map(toProduct).filter((p): p is Product => !!p);
+}
+
+/** Where today's price sits in the last 90 days. Null when there is no usable history. */
+export async function priceInsight(id: string): Promise<PriceInsight | null> {
+  const key = process.env.CHANNEL3_API_KEY;
+  if (!key) return null;
+  const res = await fetch(`https://api.trychannel3.com/v0/price-tracking/history/${encodeURIComponent(id)}?days=90`, {
+    headers: { 'x-api-key': key }, signal: AbortSignal.timeout(10_000), cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const s = record(record(await res.json()).statistics);
+  const status = s.current_status;
+  const numbers = [s.current_price, s.mean, s.min_price, s.max_price];
+  if (s.currency !== 'USD' || (status !== 'low' && status !== 'typical' && status !== 'high') || !numbers.every(n => typeof n === 'number' && n >= 0)) return null;
+  const [current, mean, min, max] = numbers as number[];
+  return { status, current, mean, min, max };
 }

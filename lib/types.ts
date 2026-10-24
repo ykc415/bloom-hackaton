@@ -11,6 +11,12 @@ export type Product = {
   reason?: string;
 };
 
+/** 90-day price statistics for a product (Channel3 price history). */
+export type PriceInsight = { status: 'low' | 'typical' | 'high'; current: number; mean: number; min: number; max: number };
+
+/** A saved product. `price` is the baseline used to detect price drops on later visits. */
+export type Saved = { product: Product; price: number; current: number; savedAt: string };
+
 export const factCategories = ['brands', 'sizes', 'budget', 'style', 'interests', 'household'] as const;
 export type FactCategory = (typeof factCategories)[number];
 export const categoryLabels: Record<FactCategory, string> = {
@@ -31,7 +37,7 @@ export type Fact = {
 export type ChatEvent =
   | { type: 'status'; message: string }
   | { type: 'text'; delta: string }
-  | { type: 'products'; products: Product[] }
+  | { type: 'products'; products: Product[]; suggestions: string[] }
   | { type: 'fact'; fact: Fact }
   | { type: 'error'; message: string }
   | { type: 'done' };

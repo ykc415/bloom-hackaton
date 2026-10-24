@@ -12,7 +12,7 @@ const SYSTEM = `You are magent, a personal shopping agent for US shoppers. You f
 How to work:
 - Reply in the language the user writes in. Be concise, warm and specific. Prices are USD.
 - Call search_products to find real products. Use several searches when the request spans categories or styles. Put brand, size, color, material and style constraints in the query.
-- Then call show_products with the 3-6 best matches, using only ids returned by search_products in this conversation. Give each a one-line reason tied to the shopper's profile or request.
+- Then call show_products with the 3-6 best matches, using only ids returned by search_products in this conversation. Give each a one-line reason tied to the shopper's profile or request, plus 2-3 short follow-up suggestions the user might tap next (e.g. "Show cheaper options", "Only black ones").
 - After the cards appear, write 1-3 short sentences: the key tradeoff and your top pick. Don't repeat every name and price, and don't use tables or links. Don't narrate tool calls before making them.
 - Never invent products, prices, stock, discounts, ratings or stores. Search results are candidates; stock is what the catalog reports.
 - If nothing fits a hard requirement, say so and ask what to relax.
@@ -58,8 +58,9 @@ const tools: Anthropic.Beta.BetaTool[] = [
             required: ['id', 'reason'],
           },
         },
+        suggestions: { type: 'array', items: { type: 'string' }, description: '2-3 short follow-up requests the user might tap next.' },
       },
-      required: ['items'],
+      required: ['items', 'suggestions'],
     },
   },
   {
@@ -81,7 +82,7 @@ const tools: Anthropic.Beta.BetaTool[] = [
 ];
 
 const searchInput = z.object({ query: z.string().min(2).max(500), min_price: z.number().min(0).nullable(), max_price: z.number().min(0).nullable() });
-const showInput = z.object({ items: z.array(z.object({ id: z.string(), reason: z.string() })).min(1).max(8) });
+const showInput = z.object({ items: z.array(z.object({ id: z.string(), reason: z.string() })).min(1).max(8), suggestions: z.array(z.string()).max(4) });
 const rememberInput = z.object({ key: z.string().min(1).max(64), category: z.enum(factCategories), title: z.string().min(1).max(120), quote: z.string().min(2).max(500) });
 
 const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -118,7 +119,7 @@ export async function runAgent(input: ChatInput, emit: (event: ChatEvent) => voi
       if (!args.success) return { content: 'Invalid arguments.', is_error: true };
       const items = [...new Map(args.data.items.map(i => [i.id, i])).values()].filter(i => known.has(i.id)).slice(0, 6);
       if (!items.length) return { content: 'None of these ids were returned by search_products. Use returned ids only.', is_error: true };
-      emit({ type: 'products', products: items.map(i => ({ ...known.get(i.id)!, reason: i.reason.slice(0, 240) })) });
+      emit({ type: 'products', products: items.map(i => ({ ...known.get(i.id)!, reason: i.reason.slice(0, 240) })), suggestions: args.data.suggestions.map(x => x.slice(0, 80)).slice(0, 3) });
       return { content: `Displayed ${items.length} product cards. Now write 1-3 short sentences without repeating the cards.` };
     }
     if (use.name === 'remember_fact') {
@@ -133,7 +134,9 @@ export async function runAgent(input: ChatInput, emit: (event: ChatEvent) => voi
   }
 
   emit({ type: 'status', message: 'Thinking…' });
+  let wroteText = false;
   for (let round = 0; round < MAX_ROUNDS; round++) {
+    let roundText = false;
     const stream = client.beta.messages.stream({
       model: 'claude-opus-5-5',
       max_tokens: 64000,
@@ -146,7 +149,11 @@ export async function runAgent(input: ChatInput, emit: (event: ChatEvent) => voi
       tool_choice: round === MAX_ROUNDS - 1 ? { type: 'none' } : { type: 'auto' },
       messages,
     }, { signal });
-    stream.on('text', delta => emit({ type: 'text', delta }));
+    stream.on('text', delta => {
+      if (!roundText && wroteText) emit({ type: 'text', delta: '\n\n' });
+      roundText = wroteText = true;
+      emit({ type: 'text', delta });
+    });
     const message = await stream.finalMessage();
 
     if (message.stop_reason === 'refusal') { emit({ type: 'text', delta: "Sorry, I can't help with that request." }); break; }

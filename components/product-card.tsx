@@ -1,43 +1,92 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowUpRight, Sparkles, Star } from 'lucide-react';
-import { money, type Product } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, Bookmark, Package, Sparkles, Store, TrendingDown, TrendingUp } from 'lucide-react';
+import { money, type PriceInsight, type Product } from '@/lib/types';
 
-export function ProductCard({ product }: { product: Product }) {
+type Props = {
+  product: Product;
+  saved: boolean;
+  onSave: (product: Product, insight: PriceInsight | null) => void;
+  drop?: number; // how much the price fell since it was saved
+};
+
+function InsightBadge({ insight }: { insight: PriceInsight }) {
+  if (insight.status === 'low') return <p className="insight low"><TrendingDown size={13} aria-hidden /> Lower than usual · 90-day avg {money(insight.mean)}</p>;
+  if (insight.status === 'high') return <p className="insight high"><TrendingUp size={13} aria-hidden /> Higher than usual · 90-day avg {money(insight.mean)}</p>;
+  return <p className="insight">Fair price · 90-day range {money(insight.min)}–{money(insight.max)}</p>;
+}
+
+export function ProductCard({ product, saved, onSave, drop }: Props) {
   const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [insight, setInsight] = useState<PriceInsight | null>(null);
   const best = product.offers[0];
-  const highest = Math.max(...product.offers.map(o => o.price));
+  const savings = Math.max(...product.offers.map(o => o.price)) - best.price;
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/price/${encodeURIComponent(product.id)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: PriceInsight | null) => { if (alive) setInsight(data); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [product.id]);
+
   return (
-    <article className="card">
-      <a className="card-media" href={best.url} target="_blank" rel="noopener noreferrer" tabIndex={-1}>
-        {product.image ? <img src={product.image} alt="" loading="lazy" /> : <span className="noimg">No image</span>}
+    <article className="product-card">
+      <div className="product-card-top">
+        <span>{product.brand || 'Picked for you'}</span>
+        <button
+          type="button"
+          className={`icon-button save-icon${saved ? ' is-saved' : ''}`}
+          onClick={() => onSave(product, insight)}
+          aria-pressed={saved}
+          aria-label={`${saved ? 'Unsave' : 'Save'} ${product.title}`}
+          title={saved ? 'Saved. We will tell you if the price drops.' : 'Save and watch the price'}
+        >
+          <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+      <a className="product-photo" href={best.url} target="_blank" rel="noopener noreferrer" aria-label={`View ${product.title} at ${best.merchant}`}>
+        {product.image && !failed
+          ? <img src={product.image} alt="" loading="lazy" onError={() => setFailed(true)} />
+          : <span className="photo-fallback"><Package size={36} strokeWidth={1} aria-hidden /><span>Image unavailable</span></span>}
+        <span className="photo-arrow" aria-hidden><ArrowUpRight size={17} /></span>
       </a>
-      <div className="card-body">
-        <p className="card-brand">{product.brand || product.category || 'Product'}</p>
-        <h3 className="card-title">{product.title}</h3>
-        {product.reason && <p className="card-reason"><Sparkles size={13} aria-hidden />{product.reason}</p>}
-        <div className="card-price">
+      <div className="product-copy">
+        <p className="product-category">{product.category || 'Selected for you'}</p>
+        <h3><a href={best.url} target="_blank" rel="noopener noreferrer">{product.title}</a></h3>
+        <div className="price-row">
           <strong>{money(best.price)}</strong>
-          {best.compareAt && <s>{money(best.compareAt)}</s>}
+          {best.compareAt && <del>{money(best.compareAt)}</del>}
           <span>at {best.merchant}</span>
         </div>
-        {product.offers.length > 1 && highest > best.price && (
-          <p className="card-save">Best price of {product.offers.length} stores · save {money(highest - best.price)}</p>
-        )}
-        {product.rating && (
-          <p className="card-rating"><Star size={12} aria-hidden /> {product.rating.value.toFixed(1)} · {product.rating.count.toLocaleString('en-US')} reviews</p>
-        )}
-        <div className="card-actions">
-          <a className="btn primary sm" href={best.url} target="_blank" rel="noopener noreferrer">Buy <ArrowUpRight size={14} aria-hidden /></a>
+        {drop ? <p className="insight low"><TrendingDown size={13} aria-hidden /> Dropped {money(drop)} since you saved it</p> : insight && <InsightBadge insight={insight} />}
+        {product.reason && <p className="product-reason"><Sparkles size={13} aria-hidden />{product.reason}</p>}
+        <p className="product-stores">
+          <span className={`stock-dot${best.inStock ? ' green' : ''}`} />
+          {product.offers.length > 1
+            ? `Best price of ${product.offers.length} stores${savings > 0.5 ? ` · save ${money(savings)}` : ''}`
+            : best.inStock ? 'Retailer reports in stock' : 'Availability not confirmed'}
+        </p>
+        <div className="product-actions">
+          <a className="buy-button" href={best.url} target="_blank" rel="noopener noreferrer">Buy now <ArrowUpRight size={15} aria-hidden /></a>
           {product.offers.length > 1 && (
-            <button type="button" className="btn ghost sm" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-              {open ? 'Hide stores' : `Compare ${product.offers.length} stores`}
+            <button
+              type="button"
+              className={`icon-button compare-toggle${open ? ' selected' : ''}`}
+              onClick={() => setOpen(o => !o)}
+              aria-expanded={open}
+              aria-label={`Compare ${product.offers.length} stores`}
+              title={`Compare ${product.offers.length} stores`}
+            >
+              <Store size={17} />
             </button>
           )}
         </div>
         {open && (
-          <ul className="offers">
+          <ul className="offer-list">
             {product.offers.map(o => (
               <li key={o.url}>
                 <a href={o.url} target="_blank" rel="noopener noreferrer">
