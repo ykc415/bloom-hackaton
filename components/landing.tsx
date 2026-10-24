@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowRight, BellRing, Brain, Lock, Mail, ShieldCheck, ShoppingBag, Sparkles, Store, Tags, TrendingDown } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, BellRing, Brain, Lock, Mail, ShieldCheck, ShoppingBag, Sparkles, Store, Tags, TrendingDown, type LucideIcon } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useI18n, type MessageKey } from '@/lib/i18n';
 
@@ -18,6 +19,19 @@ const features = [
 ] as const;
 
 const promises = ['landing.promise1', 'landing.promise2', 'landing.promise3', 'landing.promise4'] as const;
+
+// Real catalog photos (Channel3) for the illustrative picks; fall back to an icon if the CDN is unavailable.
+const HOKA_IMAGE = 'https://cdn.trychannel3.com/cleaned/v1/505607fc-5254-4a78-a9aa-d52fbaa3903a?aid=01M5P67DHNAGC3CWTXZDHYG5AT&mid=3KLu';
+const TEE_IMAGE = 'https://cdn.trychannel3.com/4caa435a-3bb8-4335-b812-82662c7968ef?aid=01M5P67FF40YSNHKV8D6VB9NAB&mid=fJnd';
+
+function Thumb({ src, icon: Icon, cover }: { src: string; icon: LucideIcon; cover?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="visual-thumb">
+      {failed ? <Icon size={22} strokeWidth={1.4} /> : <img src={src} alt="" className={cover ? 'cover' : ''} onError={() => setFailed(true)} />}
+    </span>
+  );
+}
 
 export function Landing({ onConnect }: { onConnect: () => void }) {
   const { t } = useI18n();
@@ -65,7 +79,7 @@ export function Landing({ onConnect }: { onConnect: () => void }) {
               </div>
             </div>
             <div className="visual-card visual-pick">
-              <span className="visual-thumb"><ShoppingBag size={22} strokeWidth={1.4} /></span>
+              <Thumb src={HOKA_IMAGE} icon={ShoppingBag} />
               <div>
                 <p className="visual-brand">HOKA</p>
                 <p className="visual-title">{t('landing.visualPick1')}</p>
@@ -74,7 +88,7 @@ export function Landing({ onConnect }: { onConnect: () => void }) {
               </div>
             </div>
             <div className="visual-card visual-pick">
-              <span className="visual-thumb"><Tags size={22} strokeWidth={1.4} /></span>
+              <Thumb src={TEE_IMAGE} icon={Tags} cover />
               <div>
                 <p className="visual-brand">UNIQLO</p>
                 <p className="visual-title">{t('landing.visualPick2')}</p>
