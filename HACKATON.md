@@ -11,6 +11,7 @@
 - **타깃:** 글로벌, 쇼핑할 때 온라인 이커머스/AI를 사용하며 퍼스널라이징 제품을 찾는 고객군
 - **레포:** https://github.com/ykc415/bloom-hackaton
 - 같은 BASS 미션 경쟁 팀: AZ, 허김형건준우, 슈퍼에이전트 (전체 41팀)
+- **사용 가능한 Claude 크레딧: 총 $1,000** (2계정 × $500, 내 계정 $500 + 팀원 계정 $500). Claude Code 사용과 배포 앱의 API 호출이 모두 여기서 나간다.
 
 ## 해커톤 개요
 
@@ -96,7 +97,7 @@
 - 제출: https://ambition-for-korea.vercel.app/submit
 - 발표자료 키트: https://ambition-for-korea.vercel.app/kit/ (로컬 사본은 `ambition-slide-kit/`)
 - 오프닝 슬라이드: https://ambition-for-korea.vercel.app/slides
-- Claude 크레딧: 지급 후 30일간 Claude Code와 배포 앱의 API 호출에 쓸 수 있다. 한 조직으로 초대해 함께 써도 된다. 문제가 생기면 현장 앞쪽 운영진에게 간다.
+- Claude 크레딧 (우리 팀 총 $1,000 = 2계정 × $500): 지급 후 30일간 Claude Code와 배포 앱의 API 호출에 쓸 수 있다. 한 조직으로 초대해 함께 써도 된다. 문제가 생기면 현장 앞쪽 운영진에게 간다.
 
 ## 공지 업데이트 로그
 
